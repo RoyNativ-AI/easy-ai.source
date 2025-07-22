@@ -12,6 +12,8 @@ build/
 .env
 *.env
 easyai.env
+**/easyai.env
+**/*.env
 
 # Log files
 *.log
