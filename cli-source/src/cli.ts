@@ -25,9 +25,12 @@ program
   .command('init')
   .description('Initialize EasyAI in current project')
   .option('-u, --user-id <id>', 'User ID from registration')
+  .option('-k, --key <key>', 'EasyAI customer key (alias for user-id)')
   .action(async (options) => {
     try {
-      await initializeProject(options.userId);
+      // Support both -u and -k flags (they're the same thing)
+      const userId = options.userId || options.key;
+      await initializeProject(userId);
       console.log(chalk.green('✅ EasyAI initialized successfully!'));
     } catch (error) {
       console.error(chalk.red('❌ Initialization failed:'), error);

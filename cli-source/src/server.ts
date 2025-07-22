@@ -546,17 +546,25 @@ app.post('/api/playground/test', async (req, res) => {
         }
         
         if (openaiKey && openaiKey !== '' && openaiKey !== 'your_openai_key_here' && openaiKey !== '***configured***') {
-          console.log(`🤖 Using OpenAI for ${model}`)
-          const dynamicOpenai = new OpenAI({ apiKey: openaiKey })
-          const completion = await dynamicOpenai.chat.completions.create({
-            model,
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 1000
-          })
-          
-          response = completion.choices[0]?.message?.content || 'No response'
-          tokens = completion.usage?.total_tokens || 0
-          cost = calculateCost(model, tokens)
+          if (openaiKey === 'demo_openai_key') {
+            // Demo mode - provide simulated response
+            console.log(`🎯 Using Demo OpenAI for ${model}`)
+            response = `Hello! This is a demo response from ${model}.\n\n✨ **You're using EasyAI in trial mode!**\n\nI can help you with:\n- Code review and analysis\n- Writing and debugging\n- Explaining complex concepts\n- Creative writing tasks\n\n🔑 **To unlock real AI responses**, add your OpenAI API key to easyai/config/easyai.env\n\nTry asking me anything - I'm here to help!`
+            tokens = Math.floor(Math.random() * 100) + 50
+            cost = calculateCost(model, tokens)
+          } else {
+            console.log(`🤖 Using OpenAI for ${model}`)
+            const dynamicOpenai = new OpenAI({ apiKey: openaiKey })
+            const completion = await dynamicOpenai.chat.completions.create({
+              model,
+              messages: [{ role: 'user', content: prompt }],
+              max_tokens: 1000
+            })
+            
+            response = completion.choices[0]?.message?.content || 'No response'
+            tokens = completion.usage?.total_tokens || 0
+            cost = calculateCost(model, tokens)
+          }
         } else {
           throw new Error('OpenAI API key not configured or invalid')
         }
@@ -581,17 +589,25 @@ app.post('/api/playground/test', async (req, res) => {
         }
         
         if (anthropicKey && anthropicKey !== '' && anthropicKey !== 'your_anthropic_key_here' && anthropicKey !== '***configured***') {
-          console.log(`🤖 Using Anthropic for ${model}`)
-          const dynamicAnthropic = new Anthropic({ apiKey: anthropicKey })
-          const completion = await dynamicAnthropic.messages.create({
-            model,
-            max_tokens: 1000,
-            messages: [{ role: 'user', content: prompt }]
-          })
-          
-          response = completion.content[0]?.type === 'text' ? completion.content[0].text : 'No response'
-          tokens = (completion.usage?.input_tokens || 0) + (completion.usage?.output_tokens || 0)
-          cost = calculateCost(model, tokens)
+          if (anthropicKey === 'demo_anthropic_key') {
+            // Demo mode - provide simulated response
+            console.log(`🎯 Using Demo Anthropic for ${model}`)
+            response = `Hi! I'm Claude in demo mode running on ${model}.\n\n🎭 **EasyAI Trial Experience**\n\nI'd be happy to assist you with:\n• Thoughtful analysis and reasoning\n• Creative writing and brainstorming  \n• Code explanation and debugging\n• Research and summarization\n\n🚀 **Ready for the real Claude experience?**\nAdd your Anthropic API key to easyai/config/easyai.env\n\nWhat would you like to explore together?`
+            tokens = Math.floor(Math.random() * 120) + 80
+            cost = calculateCost(model, tokens)
+          } else {
+            console.log(`🤖 Using Anthropic for ${model}`)
+            const dynamicAnthropic = new Anthropic({ apiKey: anthropicKey })
+            const completion = await dynamicAnthropic.messages.create({
+              model,
+              max_tokens: 1000,
+              messages: [{ role: 'user', content: prompt }]
+            })
+            
+            response = completion.content[0]?.type === 'text' ? completion.content[0].text : 'No response'
+            tokens = (completion.usage?.input_tokens || 0) + (completion.usage?.output_tokens || 0)
+            cost = calculateCost(model, tokens)
+          }
         } else {
           throw new Error('Anthropic API key not configured or invalid')
         }

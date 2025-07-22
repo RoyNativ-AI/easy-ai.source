@@ -13,7 +13,13 @@ export async function initializeProject(userId?: string): Promise<void> {
     throw new Error('EasyAI is already initialized in this project');
   }
 
+  // Check if this is a trial setup
+  const isTrialSetup = userId && userId.startsWith('easyai_');
+
   console.log(chalk.blue('🚀 Initializing EasyAI...'));
+  if (isTrialSetup) {
+    console.log(chalk.cyan('🎯 Trial mode detected - setting up demo configuration'));
+  }
 
   // Create directory structure
   await fs.ensureDir(path.join(easyaiDir, 'prompts', 'examples'));
@@ -42,13 +48,24 @@ export async function initializeProject(userId?: string): Promise<void> {
   }
   
   console.log(chalk.yellow('💡 Next steps:'));
-  console.log(chalk.yellow('   1. Add your API keys to easyai/config/easyai.env'));
-  if (autoCaptureEnabled) {
-    console.log(chalk.yellow('   2. Run your app with: node easyai-start.js'));
-    console.log(chalk.yellow('   3. Run "easyai ui" to open the dashboard and view logs'));
+  
+  if (isTrialSetup) {
+    console.log(chalk.cyan('   🎉 You\'re ready to try EasyAI!'));
+    console.log(chalk.cyan('   1. Run "easyai ui" to open the dashboard'));
+    console.log(chalk.cyan('   2. Test the playground with demo models'));
+    if (autoCaptureEnabled) {
+      console.log(chalk.cyan('   3. Run your app with: node easyai-start.js (auto-capture enabled)'));
+    }
+    console.log(chalk.yellow('   💡 To unlock full features, add your own API keys to easyai/config/easyai.env'));
   } else {
-    console.log(chalk.yellow('   2. Add import \'easyai/auto-capture\' to your main file for manual logging'));
-    console.log(chalk.yellow('   3. Run "easyai ui" to open the dashboard'));
+    console.log(chalk.yellow('   1. Add your API keys to easyai/config/easyai.env'));
+    if (autoCaptureEnabled) {
+      console.log(chalk.yellow('   2. Run your app with: node easyai-start.js'));
+      console.log(chalk.yellow('   3. Run "easyai ui" to open the dashboard and view logs'));
+    } else {
+      console.log(chalk.yellow('   2. Add import \'easyai/auto-capture\' to your main file for manual logging'));
+      console.log(chalk.yellow('   3. Run "easyai ui" to open the dashboard'));
+    }
   }
 }
 
@@ -119,8 +136,41 @@ Provide implementation plan and code for the requested feature.`
 async function createConfigFiles(easyaiDir: string, userId?: string): Promise<void> {
   const configDir = path.join(easyaiDir, 'config');
   
-  // Create .env file
-  const envContent = `# OpenAI Configuration
+  // Check if user provided a customer key (trial setup)
+  const isTrialSetup = userId && userId.startsWith('easyai_');
+  
+  // Create .env file with demo keys if trial setup
+  let envContent = '';
+  
+  if (isTrialSetup) {
+    envContent = `# EasyAI Trial Configuration
+# You're using EasyAI trial with limited access
+# To unlock full features, add your own API keys below
+
+# OpenAI Configuration (Demo - Limited)
+OPENAI_API_KEY=demo_openai_key
+
+# Anthropic Configuration (Demo - Limited)
+ANTHROPIC_API_KEY=demo_anthropic_key
+
+# Google Gemini Configuration  
+GOOGLE_API_KEY=
+
+# OpenRouter Configuration
+OPENROUTER_API_KEY=
+
+# Ollama Configuration
+OLLAMA_BASE_URL=
+
+# EasyAI Configuration
+EASYAI_USER_ID=${userId}
+EASYAI_PROJECT_ID=${generateId()}
+EASYAI_LOG_LEVEL=info
+EASYAI_PORT=7542
+EASYAI_TRIAL_MODE=true
+`;
+  } else {
+    envContent = `# OpenAI Configuration
 OPENAI_API_KEY=
 
 # Anthropic Configuration  
@@ -141,6 +191,7 @@ EASYAI_PROJECT_ID=${generateId()}
 EASYAI_LOG_LEVEL=info
 EASYAI_PORT=7542
 `;
+  }
 
   await fs.writeFile(path.join(configDir, 'easyai.env'), envContent);
 
