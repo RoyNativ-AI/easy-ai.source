@@ -1,10 +1,10 @@
 {
   "name": "@easyai/cli",
-  "version": "3.0.16",
+  "version": "3.0.17",
   "description": "AI development tool with CLI and dashboard",
   "main": "dist/index.js",
   "bin": {
-    "easyai": "./dist/cli.js"
+    "easyai": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc && cd ../web-ui && npm run build && cp -r dist ../cli-source/frontend-dist",

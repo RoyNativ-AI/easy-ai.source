@@ -1234,6 +1234,29 @@ const Logs: React.FC = () => {
                           }}>
                             {log.model}
                           </span>
+
+                          {/* Prompt Analysis Indicator */}
+                          {(() => {
+                            const sourceInfo = getPromptSourceIcon(log.prompt_analysis);
+                            if (!sourceInfo) return null;
+                            
+                            return (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: '#ffffff',
+                                border: `1px solid ${sourceInfo.color}`,
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                fontSize: '0.75rem',
+                                fontWeight: '500'
+                              }}>
+                                <span>{sourceInfo.icon}</span>
+                                <span style={{ color: sourceInfo.color }}>{sourceInfo.text}</span>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Metadata */}
@@ -1821,10 +1844,33 @@ const Logs: React.FC = () => {
                           <div style={{
                             fontSize: '0.875rem',
                             fontWeight: '600',
-                            color: '#111827'
+                            color: '#111827',
+                            marginBottom: '4px'
                           }}>
                             {log.model}
                           </div>
+                          {/* Prompt Analysis Indicator */}
+                          {(() => {
+                            const sourceInfo = getPromptSourceIcon(log.prompt_analysis);
+                            if (!sourceInfo) return null;
+                            
+                            return (
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                backgroundColor: '#ffffff',
+                                border: `1px solid ${sourceInfo.color}`,
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '0.6875rem',
+                                fontWeight: '500'
+                              }}>
+                                <span style={{ fontSize: '0.75rem' }}>{sourceInfo.icon}</span>
+                                <span style={{ color: sourceInfo.color }}>{sourceInfo.text}</span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '12px', verticalAlign: 'top', minWidth: '100px' }}>
                           <div style={{
