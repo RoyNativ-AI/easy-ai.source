@@ -8,6 +8,21 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import { calculateCost } from './utils/pricing'
 
+// Helper function to safely stringify data
+function safeStringify(data: any): string {
+  try {
+    if (typeof data === 'string') {
+      return data
+    }
+    if (data === null || data === undefined) {
+      return ''
+    }
+    return JSON.stringify(data, null, 2)
+  } catch (error) {
+    return String(data || '')
+  }
+}
+
 // Load environment variables from easyai.env
 const envPath = path.join(process.cwd(), 'easyai', 'config', 'easyai.env')
 if (fs.existsSync(envPath)) {
@@ -40,7 +55,6 @@ try {
 app.get('/api/analytics', async (req, res) => {
   try {
     const logsPath = path.join(process.cwd(), 'easyai', 'easyai.jsonl')
-    const autoCaptureLogsPath = path.join(process.cwd(), 'easyai', 'logs', 'auto-capture.jsonl')
     
     let logs: any[] = []
 
@@ -61,38 +75,43 @@ app.get('/api/analytics', async (req, res) => {
       logs = [...logs, ...traditionalLogs]
     }
 
-    // Read auto-capture logs
-    if (fs.existsSync(autoCaptureLogsPath)) {
-      const autoCaptureContent = await fs.readFile(autoCaptureLogsPath, 'utf8')
-      const autoCaptureLogs = await Promise.all(
-        autoCaptureContent.trim().split('\n')
+    // Read from calls.jsonl (includes python-interceptor, playground, and auto-capture)
+    const callsLogsPath = path.join(process.cwd(), 'easyai', 'logs', 'calls.jsonl')
+    if (fs.existsSync(callsLogsPath)) {
+      const callsContent = await fs.readFile(callsLogsPath, 'utf8')
+      const callsLogs = await Promise.all(
+        callsContent.trim().split('\n')
           .filter(line => line.trim())
           .map(async line => {
             try {
               const parsed = JSON.parse(line)
-              // Extract model from auto-capture logs
+              
+              // Skip request-only entries from python interceptor - only count response entries
+              if ((parsed.source === 'python-interceptor' || parsed.source === 'auto-capture') && parsed.type === 'request') {
+                return null
+              }
+              
+              // Extract model - for python-interceptor, it's in requestBody
               let model = 'unknown'
-              if (parsed.url) {
+              if (parsed.requestBody?.model) {
+                model = parsed.requestBody.model
+              } else if (parsed.url) {
                 model = extractModelFromUrl(parsed.url, parsed.requestBody)
               }
-              // Extract tokens from response data
+              
+              // Extract tokens from response data with better error handling
               let tokens = 0
-              if (parsed.responseData?.usage?.total_tokens) {
-                tokens = parsed.responseData.usage.total_tokens
-              } else if (typeof parsed.responseData === 'string') {
-                try {
-                  const responseData = JSON.parse(parsed.responseData)
-                  if (responseData.usage?.total_tokens) {
-                    tokens = responseData.usage.total_tokens
-                  }
-                } catch (e) {
-                  // Failed to parse, keep tokens as 0
-                }
+              if (parsed.responseData?.usage) {
+                const usage = parsed.responseData.usage
+                tokens = usage.total_tokens || 
+                        (usage.input_tokens + usage.output_tokens) || 
+                        (usage.prompt_tokens + usage.completion_tokens) || 0
               }
+              
               const cost = calculateCost(model, tokens)
               return { 
                 ...parsed, 
-                source: 'workspace',
+                source: parsed.source || 'workspace',
                 model,
                 tokens,
                 cost
@@ -102,7 +121,7 @@ app.get('/api/analytics', async (req, res) => {
             }
           })
       )
-      logs = [...logs, ...autoCaptureLogs.filter(Boolean)]
+      logs = [...logs, ...callsLogs.filter(Boolean)]
     }
 
     if (logs.length === 0) {
@@ -231,56 +250,88 @@ app.get('/api/logs', async (req, res) => {
       allLogs.push(...logs)
     }
     
-    // Load auto-capture logs from auto-capture.jsonl
-    const autoCaptureLogsPath = path.join(process.cwd(), 'easyai', 'logs', 'auto-capture.jsonl')
-    if (fs.existsSync(autoCaptureLogsPath)) {
-      const logsContent = await fs.readFile(autoCaptureLogsPath, 'utf8')
+    // Load logs from calls.jsonl (includes both playground and proxy-captured requests)
+    const callsLogsPath = path.join(process.cwd(), 'easyai', 'logs', 'calls.jsonl')
+    if (fs.existsSync(callsLogsPath)) {
+      const logsContent = await fs.readFile(callsLogsPath, 'utf8')
       const logs = await Promise.all(
         logsContent.trim().split('\n')
           .filter(line => line.trim())
           .map(async line => {
           try {
             const log = JSON.parse(line)
-            // Transform auto-capture format to match expected format
-            // Extract tokens from response data
-            let tokens = 0
-            if (log.responseData?.usage?.total_tokens) {
-              tokens = log.responseData.usage.total_tokens
-            } else if (typeof log.responseData === 'string') {
-              try {
-                const responseData = JSON.parse(log.responseData)
-                if (responseData.usage?.total_tokens) {
-                  tokens = responseData.usage.total_tokens
-                }
-              } catch (e) {
-                // Failed to parse, keep tokens as 0
-              }
+            
+            // Skip request-only entries from python interceptor
+            if ((log.source === 'python-interceptor' || log.source === 'auto-capture') && log.type === 'request') {
+              return null
             }
             
-            const model = log.url ? extractModelFromUrl(log.url, log.requestBody) : 'External API'
-            const cost = calculateCost(model, tokens)
-            
-            return {
-              id: log.id,
-              timestamp: log.timestamp,
-              model: model,
-              prompt: formatRequestSummary(log),
-              tokens: tokens,
-              cost: cost,
-              duration: log.duration || 0,
-              success: log.success,
-              response: formatResponseText(log),
-              source: 'workspace',
-              // Keep original auto-capture data
-              original: {
-                method: log.method,
-                url: log.url,
-                status: log.status,
-                requestBody: log.requestBody,
-                responseData: log.responseData,
-                headers: log.headers,
-                error: log.error
+            // If this is a proxy-captured request or python interceptor, transform format
+            if (log.source === 'proxy' || log.source === 'smart-proxy' || log.source === 'python-interceptor' || log.source === 'auto-capture') {
+              // Extract tokens from response data with better error handling
+              let tokens = 0
+              try {
+                // Handle direct token property (smart-proxy)
+                if (log.tokens && typeof log.tokens === 'number') {
+                  tokens = log.tokens
+                }
+                // Handle response data with usage
+                else if (log.responseData?.usage) {
+                  const usage = log.responseData.usage
+                  tokens = usage.total_tokens || 
+                          (usage.input_tokens + usage.output_tokens) || 
+                          (usage.prompt_tokens + usage.completion_tokens) || 0
+                } 
+                // Handle string response data
+                else if (typeof log.responseData === 'string') {
+                  try {
+                    const responseData = JSON.parse(log.responseData)
+                    if (responseData.usage?.total_tokens) {
+                      tokens = responseData.usage.total_tokens
+                    }
+                  } catch (e) {
+                    // Failed to parse, keep tokens as 0
+                  }
+                }
+              } catch (e) {
+                // Ensure tokens is always a number
+                tokens = 0
               }
+            
+              // Extract model - for python-interceptor, it's in requestBody
+              let model = 'External API'
+              if (log.requestBody?.model) {
+                model = log.requestBody.model
+              } else if (log.url) {
+                model = extractModelFromUrl(log.url, log.requestBody)
+              }
+              const cost = calculateCost(model, tokens)
+              
+              return {
+                id: log.id || `${log.provider || 'api'}-${log.timestamp}-${Math.random().toString(36).substr(2, 9)}`,
+                timestamp: log.timestamp,
+                model: model,
+                prompt: formatRequestSummary(log),
+                tokens: tokens,
+                cost: cost,
+                duration: log.duration || 0,
+                success: log.success !== undefined ? log.success : (log.status >= 200 && log.status < 300),
+                response: formatResponseText(log),
+                source: 'workspace',
+                // Keep original auto-capture data with error handling
+                original: {
+                  method: log.method || 'Unknown',
+                  url: log.url || '',
+                  status: log.status || 0,
+                  requestBody: log.requestBody || {},
+                  responseData: log.responseData || {},
+                  headers: log.headers || {},
+                  error: log.error || null
+                }
+              }
+            } else {
+              // Handle regular playground logs
+              return log
             }
           } catch (error) {
             return null
@@ -346,6 +397,28 @@ function formatRequestSummary(log: any): string {
       }
     } catch (error) {
       // Continue with URL-based summary
+    }
+  }
+  
+  // For GET requests to API endpoints, show more descriptive text
+  if (method === 'GET') {
+    if (url.includes('/models')) {
+      return 'Fetch available models'
+    }
+    if (url.includes('/chat')) {
+      return 'Chat API request'
+    }
+    if (url.includes('/completions')) {
+      return 'Text completion request'
+    }
+    // Show hostname + endpoint for other GET requests
+    try {
+      const urlObj = new URL(url)
+      const pathParts = urlObj.pathname.split('/').filter(Boolean)
+      const provider = urlObj.hostname.replace('api.', '').replace('.com', '')
+      return `${method} ${provider}/${pathParts.slice(-2).join('/')}`
+    } catch (error) {
+      return `${method} ${url.split('/').pop() || url}`
     }
   }
   
@@ -529,10 +602,10 @@ app.post('/api/playground/test', async (req, res) => {
         // Read OpenAI key dynamically from file
         const configPath = path.join(process.cwd(), 'easyai', 'config', 'easyai.env')
         let openaiKey = process.env.OPENAI_API_KEY
+        let envLines: Record<string, string> = {}
         
         if (fs.existsSync(configPath)) {
           const envContent = await fs.readFile(configPath, 'utf8')
-          const envLines: Record<string, string> = {}
           envContent.split('\n').forEach(line => {
             line = line.trim()
             if (line && !line.startsWith('#')) {
@@ -546,13 +619,6 @@ app.post('/api/playground/test', async (req, res) => {
         }
         
         if (openaiKey && openaiKey !== '' && openaiKey !== 'your_openai_key_here' && openaiKey !== '***configured***') {
-          if (openaiKey === 'demo_openai_key') {
-            // Demo mode - provide simulated response
-            console.log(`🎯 Using Demo OpenAI for ${model}`)
-            response = `Hello! This is a demo response from ${model}.\n\n✨ **You're using EasyAI in trial mode!**\n\nI can help you with:\n- Code review and analysis\n- Writing and debugging\n- Explaining complex concepts\n- Creative writing tasks\n\n🔑 **To unlock real AI responses**, add your OpenAI API key to easyai/config/easyai.env\n\nTry asking me anything - I'm here to help!`
-            tokens = Math.floor(Math.random() * 100) + 50
-            cost = calculateCost(model, tokens)
-          } else {
             console.log(`🤖 Using OpenAI for ${model}`)
             const dynamicOpenai = new OpenAI({ apiKey: openaiKey })
             const completion = await dynamicOpenai.chat.completions.create({
@@ -564,18 +630,17 @@ app.post('/api/playground/test', async (req, res) => {
             response = completion.choices[0]?.message?.content || 'No response'
             tokens = completion.usage?.total_tokens || 0
             cost = calculateCost(model, tokens)
+          } else {
+            throw new Error('OpenAI API key not configured or invalid')
           }
-        } else {
-          throw new Error('OpenAI API key not configured or invalid')
-        }
       } else if (model.includes('claude')) {
         // Read Anthropic key dynamically from file
         const configPath = path.join(process.cwd(), 'easyai', 'config', 'easyai.env')
         let anthropicKey = process.env.ANTHROPIC_API_KEY
+        let envLines: Record<string, string> = {}
         
         if (fs.existsSync(configPath)) {
           const envContent = await fs.readFile(configPath, 'utf8')
-          const envLines: Record<string, string> = {}
           envContent.split('\n').forEach(line => {
             line = line.trim()
             if (line && !line.startsWith('#')) {
@@ -589,13 +654,6 @@ app.post('/api/playground/test', async (req, res) => {
         }
         
         if (anthropicKey && anthropicKey !== '' && anthropicKey !== 'your_anthropic_key_here' && anthropicKey !== '***configured***') {
-          if (anthropicKey === 'demo_anthropic_key') {
-            // Demo mode - provide simulated response
-            console.log(`🎯 Using Demo Anthropic for ${model}`)
-            response = `Hi! I'm Claude in demo mode running on ${model}.\n\n🎭 **EasyAI Trial Experience**\n\nI'd be happy to assist you with:\n• Thoughtful analysis and reasoning\n• Creative writing and brainstorming  \n• Code explanation and debugging\n• Research and summarization\n\n🚀 **Ready for the real Claude experience?**\nAdd your Anthropic API key to easyai/config/easyai.env\n\nWhat would you like to explore together?`
-            tokens = Math.floor(Math.random() * 120) + 80
-            cost = calculateCost(model, tokens)
-          } else {
             console.log(`🤖 Using Anthropic for ${model}`)
             const dynamicAnthropic = new Anthropic({ apiKey: anthropicKey })
             const completion = await dynamicAnthropic.messages.create({
@@ -607,10 +665,9 @@ app.post('/api/playground/test', async (req, res) => {
             response = completion.content[0]?.type === 'text' ? completion.content[0].text : 'No response'
             tokens = (completion.usage?.input_tokens || 0) + (completion.usage?.output_tokens || 0)
             cost = calculateCost(model, tokens)
+          } else {
+            throw new Error('Anthropic API key not configured or invalid')
           }
-        } else {
-          throw new Error('Anthropic API key not configured or invalid')
-        }
       } else {
         console.log(`🎭 Using simulated response for ${model}`)
         response = `Simulated response from ${model}.\n\nYour prompt was processed successfully. To get real responses, configure your API keys in the Settings page.`
@@ -881,8 +938,11 @@ app.get('/api/models', async (req, res) => {
       }
     })
 
-    // Fetch OpenAI models
-    if (env.OPENAI_API_KEY && env.OPENAI_API_KEY !== '' && env.OPENAI_API_KEY !== 'your_openai_key_here') {
+    // Fetch OpenAI models - only if API key is properly configured
+    if (env.OPENAI_API_KEY && 
+        env.OPENAI_API_KEY !== '' && 
+        env.OPENAI_API_KEY !== 'your_openai_key_here' &&
+        env.OPENAI_API_KEY.startsWith('sk-')) {
       try {
         const response = await axios.get('https://api.openai.com/v1/models', {
           headers: {
@@ -906,8 +966,12 @@ app.get('/api/models', async (req, res) => {
       }
     }
 
-    // Fetch Anthropic models
-    if (env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY !== '' && env.ANTHROPIC_API_KEY !== 'your_anthropic_key_here' && env.ANTHROPIC_API_KEY !== '***configured***') {
+    // Fetch Anthropic models - only if API key is properly configured
+    if (env.ANTHROPIC_API_KEY && 
+        env.ANTHROPIC_API_KEY !== '' && 
+        env.ANTHROPIC_API_KEY !== 'your_anthropic_key_here' && 
+        env.ANTHROPIC_API_KEY !== '***configured***' &&
+        env.ANTHROPIC_API_KEY.startsWith('sk-ant-')) {
       try {
         const response = await axios.get('https://api.anthropic.com/v1/models', {
           headers: {
@@ -930,8 +994,11 @@ app.get('/api/models', async (req, res) => {
       }
     }
 
-    // Fetch Google Gemini models
-    if (env.GOOGLE_API_KEY && env.GOOGLE_API_KEY !== '' && env.GOOGLE_API_KEY !== 'your_google_key_here') {
+    // Fetch Google Gemini models - only if API key is properly configured
+    if (env.GOOGLE_API_KEY && 
+        env.GOOGLE_API_KEY !== '' && 
+        env.GOOGLE_API_KEY !== 'your_google_key_here' &&
+        env.GOOGLE_API_KEY.includes('AIza')) {
       try {
         const response = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${env.GOOGLE_API_KEY}`)
         
@@ -947,16 +1014,14 @@ app.get('/api/models', async (req, res) => {
         models.push(...geminiModels)
       } catch (error) {
         console.error('Failed to fetch Google models:', error)
-        // Fallback to static models if API fails
-        models.push(
-          { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', description: 'Most capable Gemini model' },
-          { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', description: 'Fastest Gemini model' }
-        )
       }
     }
 
-    // Fetch OpenRouter models
-    if (env.OPENROUTER_API_KEY && env.OPENROUTER_API_KEY !== '' && env.OPENROUTER_API_KEY !== 'your_openrouter_key_here') {
+    // Fetch OpenRouter models - only if API key is properly configured
+    if (env.OPENROUTER_API_KEY && 
+        env.OPENROUTER_API_KEY !== '' && 
+        env.OPENROUTER_API_KEY !== 'your_openrouter_key_here' &&
+        env.OPENROUTER_API_KEY.startsWith('sk-or-')) {
       try {
         const response = await axios.get('https://openrouter.ai/api/v1/models', {
           headers: {
@@ -998,6 +1063,16 @@ app.get('/api/models', async (req, res) => {
       }
     }
 
+    // If no models were fetched (no API keys configured), provide default models
+    if (models.length === 0) {
+      models.push(
+        { id: 'gpt-4', name: 'GPT-4', provider: 'OpenAI', description: 'Most capable OpenAI model' },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'OpenAI', description: 'Fast and efficient OpenAI model' },
+        { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet', provider: 'Anthropic', description: 'Balanced Claude model' },
+        { id: 'gemini-pro', name: 'Gemini Pro', provider: 'Google', description: 'Google\'s most capable model' }
+      )
+    }
+
     res.json(models)
   } catch (error) {
     console.error('Models API error:', error)
@@ -1006,8 +1081,8 @@ app.get('/api/models', async (req, res) => {
 })
 
 
-// Serve React build from web-ui
-const buildPath = path.join(__dirname, '../../web-ui/dist')
+// Serve React build
+const buildPath = path.join(__dirname, '../frontend-dist')
 if (fs.existsSync(buildPath)) {
   app.use(express.static(buildPath))
   

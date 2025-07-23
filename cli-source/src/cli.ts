@@ -13,6 +13,8 @@ import { runPlayground } from './commands/playground';
 import { showAnalytics } from './commands/analytics';
 import { exportData } from './commands/export';
 import { startInteractiveMode } from './commands/interactive';
+import fs from 'fs-extra';
+import path from 'path';
 
 const program = new Command();
 
@@ -26,12 +28,20 @@ program
   .description('Initialize EasyAI in current project')
   .option('-u, --user-id <id>', 'User ID from registration')
   .option('-k, --key <key>', 'EasyAI customer key (alias for user-id)')
+  .option('--ui', 'Open dashboard after initialization')
   .action(async (options) => {
     try {
       // Support both -u and -k flags (they're the same thing)
       const userId = options.userId || options.key;
       await initializeProject(userId);
       console.log(chalk.green('✅ EasyAI initialized successfully!'));
+      
+      // Open UI if requested
+      if (options.ui) {
+        console.log(chalk.blue('🚀 Starting EasyAI dashboard...'));
+        const { startUI } = await import('./commands/ui');
+        await startUI(7542);
+      }
     } catch (error) {
       console.error(chalk.red('❌ Initialization failed:'), error);
       process.exit(1);
@@ -180,6 +190,23 @@ program
     }
   });
 
+program
+  .command('proxy')
+  .description('Auto-capture monitoring (no proxy needed)')
+  .action(async () => {
+    console.log(chalk.green('🎉 EasyAI has been simplified!'));
+    console.log('');
+    console.log(chalk.blue('📘 No proxy setup needed anymore!'));
+    console.log(chalk.gray('   The old proxy approach has been replaced with simple imports.'));
+    console.log('');
+    console.log(chalk.yellow('💡 To monitor your AI API calls:'));
+    console.log(chalk.green('   Python: Add `import easyai` to the top of your files'));
+    console.log(chalk.green('   Node.js: Add `require("easyai")` to the top of your files'));
+    console.log('');
+    console.log(chalk.cyan('✨ That\'s it! Your requests will be automatically logged.'));
+    console.log(chalk.gray('   View logs with: easyai ui'));
+  });
+
 // Check if no command was provided (only "easyai" was run)
 if (process.argv.length <= 2) {
   startInteractiveMode().catch(error => {
@@ -189,3 +216,4 @@ if (process.argv.length <= 2) {
 } else {
   program.parse(process.argv);
 }
+

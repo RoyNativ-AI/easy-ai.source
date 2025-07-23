@@ -6,6 +6,112 @@ import { loadConfig, saveConfig, loadEnv, logAPICall } from '../utils/helpers';
 import { callOpenAI } from '../services/openai';
 import { callAnthropic } from '../services/anthropic';
 
+// Transform interceptor log format to UI format
+function transformInterceptorLog(rawLog: any): any {
+  try {
+    // Skip request-only entries - we only want complete request-response pairs
+    if (rawLog.type === 'request') {
+      return null; // This will be filtered out
+    }
+
+    // Extract prompt from request body
+    let prompt = '';
+    if (rawLog.requestBody) {
+      if (rawLog.requestBody.messages && Array.isArray(rawLog.requestBody.messages)) {
+        // OpenAI/OpenRouter format
+        const lastMessage = rawLog.requestBody.messages[rawLog.requestBody.messages.length - 1];
+        prompt = lastMessage?.content || '';
+      } else if (rawLog.requestBody.prompt) {
+        // Direct prompt field
+        prompt = rawLog.requestBody.prompt;
+      }
+    }
+
+    // Extract response text
+    let response = '';
+    let success = false;
+    
+    // Check if we have response data
+    if (rawLog.responseData) {
+      // Determine success based on status code
+      const statusCode = rawLog.status || 0;
+      success = statusCode >= 200 && statusCode < 300;
+      
+      if (rawLog.responseData.choices && Array.isArray(rawLog.responseData.choices) && rawLog.responseData.choices.length > 0) {
+        // OpenAI/OpenRouter format
+        response = rawLog.responseData.choices[0]?.message?.content || 'No content in response';
+      } else if (rawLog.responseData.content && Array.isArray(rawLog.responseData.content) && rawLog.responseData.content.length > 0) {
+        // Anthropic format
+        response = rawLog.responseData.content[0]?.text || 'No content in response';
+      } else if (rawLog.responseData.error) {
+        // Error response
+        success = false;
+        const errorMsg = rawLog.responseData.error.message || rawLog.responseData.error || 'Unknown error';
+        response = `Error: ${errorMsg}`;
+      } else {
+        // Fallback - unknown response format
+        response = 'Response received but format not recognized';
+      }
+    } else {
+      response = 'No response data available';
+    }
+
+    // Extract model name - clean up the model field
+    let model = rawLog.requestBody?.model || rawLog.model || 'Unknown Model';
+    
+    // Extract tokens
+    let tokens = 0;
+    if (rawLog.responseData?.usage) {
+      const usage = rawLog.responseData.usage;
+      tokens = usage.total_tokens || 
+               (usage.input_tokens + usage.output_tokens) || 
+               (usage.prompt_tokens + usage.completion_tokens) || 0;
+    }
+
+    // Calculate timestamp
+    let timestamp = rawLog.timestamp;
+    if (typeof timestamp === 'number') {
+      timestamp = new Date(timestamp).toISOString();
+    }
+
+    // Generate a stable ID
+    const provider = rawLog.provider || 'unknown';
+    const id = rawLog.id || `${provider}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    const transformedLog = {
+      id,
+      timestamp: timestamp || new Date().toISOString(),
+      prompt: prompt || 'No prompt available',
+      model: model || 'Unknown Model',
+      tokens: tokens || 0,
+      cost: rawLog.cost || 0,
+      duration: rawLog.duration || 0,
+      success: success,
+      response: response || 'No response available',
+      source: rawLog.source || 'python-interceptor',
+      provider: provider,
+      method: rawLog.method || 'POST',
+      endpoint: rawLog.url || '',
+      request: rawLog.requestBody || {},
+      request_flow: {
+        method: rawLog.method || 'POST',
+        url: rawLog.url || '',
+        headers: rawLog.headers || {}
+      },
+      response_full: rawLog.responseData || {},
+      performance: {
+        duration: rawLog.duration || 0,
+        status: rawLog.status || 0
+      }
+    };
+    
+    return transformedLog;
+  } catch (error) {
+    console.error('Error transforming interceptor log:', error, rawLog);
+    return null; // Return null to filter out problematic entries
+  }
+}
+
 export function setupAPIRoutes(app: Express, projectDir: string): void {
   const easyaiDir = path.join(projectDir, 'easyai');
 
@@ -35,22 +141,48 @@ export function setupAPIRoutes(app: Express, projectDir: string): void {
       // Calculate analytics from actual log entries
       for (const line of lines) {
         try {
-          const entry = JSON.parse(line);
+          const rawEntry = JSON.parse(line);
+          
+          // Only count response entries to avoid double counting
+          if (rawEntry.type === 'request') continue;
+          
           totalCalls++;
           
-          // Count tokens if available
-          if (entry.usage && entry.usage.total_tokens) {
-            totalTokens += entry.usage.total_tokens;
-          }
-          
-          // Count model usage
-          if (entry.model) {
-            modelUsage[entry.model] = (modelUsage[entry.model] || 0) + 1;
-          }
-          
-          // Track latest timestamp
-          if (entry.timestamp && entry.timestamp > lastUpdated) {
-            lastUpdated = entry.timestamp;
+          // Handle interceptor format - check multiple ways to identify interceptor format
+          if (rawEntry.source === 'python-interceptor' || rawEntry.source === 'auto-capture' || 
+              (rawEntry.provider && rawEntry.type && rawEntry.requestBody)) {
+            // Count tokens from interceptor format
+            if (rawEntry.responseData?.usage) {
+              const usage = rawEntry.responseData.usage;
+              totalTokens += usage.total_tokens || 
+                            (usage.input_tokens + usage.output_tokens) || 0;
+            }
+            
+            // Count model usage from interceptor format
+            const model = rawEntry.model || rawEntry.requestBody?.model || 'Unknown Model';
+            modelUsage[model] = (modelUsage[model] || 0) + 1;
+            
+            // Track latest timestamp from interceptor format
+            let timestamp = rawEntry.timestamp;
+            if (typeof timestamp === 'number') {
+              timestamp = new Date(timestamp).toISOString();
+            }
+            if (timestamp && timestamp > lastUpdated) {
+              lastUpdated = timestamp;
+            }
+          } else {
+            // Handle legacy format
+            if (rawEntry.usage && rawEntry.usage.total_tokens) {
+              totalTokens += rawEntry.usage.total_tokens;
+            }
+            
+            if (rawEntry.model) {
+              modelUsage[rawEntry.model] = (modelUsage[rawEntry.model] || 0) + 1;
+            }
+            
+            if (rawEntry.timestamp && rawEntry.timestamp > lastUpdated) {
+              lastUpdated = rawEntry.timestamp;
+            }
           }
         } catch (parseError) {
           // Skip malformed log entries
@@ -69,6 +201,50 @@ export function setupAPIRoutes(app: Express, projectDir: string): void {
     }
   });
 
+  // Debug endpoint to check log transformation
+  app.get('/api/logs/debug', async (req: Request, res: Response) => {
+    try {
+      const logsPath = path.join(easyaiDir, 'logs', 'calls.jsonl');
+      
+      if (!await fs.pathExists(logsPath)) {
+        return res.json({ error: 'No logs file found', path: logsPath });
+      }
+
+      const content = await fs.readFile(logsPath, 'utf-8');
+      const lines = content.trim().split('\n').filter(line => line.trim());
+      
+      const debugInfo: any = {
+        file_path: logsPath,
+        total_lines: lines.length,
+        raw_lines: lines.slice(0, 2), // Show first 2 raw lines
+        transformed_lines: []
+      };
+
+      // Try to transform first few lines
+      for (let i = 0; i < Math.min(2, lines.length); i++) {
+        try {
+          const rawLog = JSON.parse(lines[i]);
+          const transformed = transformInterceptorLog(rawLog);
+          debugInfo.transformed_lines.push({
+            original: rawLog,
+            transformed: transformed,
+            should_transform: rawLog.source === 'python-interceptor' || rawLog.source === 'auto-capture' || 
+                             (rawLog.provider && rawLog.type && rawLog.requestBody)
+          });
+        } catch (error: any) {
+          debugInfo.transformed_lines.push({
+            error: error.message,
+            line: lines[i]
+          });
+        }
+      }
+
+      res.json(debugInfo);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Debug failed', message: error.message });
+    }
+  });
+
   // Get recent logs
   app.get('/api/logs', async (req: Request, res: Response) => {
     try {
@@ -84,7 +260,21 @@ export function setupAPIRoutes(app: Express, projectDir: string): void {
         .filter(line => line.trim())
         .map(line => {
           try {
-            return JSON.parse(line);
+            const rawLog = JSON.parse(line);
+            
+            // Transform interceptor format to UI format
+            // Check if this is from Python interceptor
+            if (rawLog.source === 'python-interceptor' || rawLog.source === 'auto-capture' || 
+                (rawLog.provider && rawLog.type && rawLog.requestBody)) {
+              const transformed = transformInterceptorLog(rawLog);
+              if (transformed === null) {
+                return null; // Will be filtered out
+              }
+              return transformed;
+            }
+            
+            // Return legacy format as-is
+            return rawLog;
           } catch {
             return null;
           }

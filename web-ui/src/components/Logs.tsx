@@ -53,6 +53,105 @@ const Logs: React.FC = () => {
     threshold: 0.3
   })
 
+  // Helper function to safely format JSON data
+  const formatJsonData = (data: any): string => {
+    if (!data && data !== 0 && data !== false) {
+      return '{}';
+    }
+
+    // If it's already an object (including arrays), stringify it
+    if (typeof data === 'object') {
+      return JSON.stringify(data, null, 2);
+    }
+
+    // If it's a string, check if it's already JSON
+    if (typeof data === 'string') {
+      try {
+        // Try to parse it as JSON first
+        const parsed = JSON.parse(data);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        // If it's not valid JSON, check if it looks like escaped JSON
+        if (data.includes('\\"') || data.includes('\\n')) {
+          try {
+            // Try to unescape and parse
+            const unescaped = data.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t');
+            const parsed = JSON.parse(unescaped);
+            return JSON.stringify(parsed, null, 2);
+          } catch (e) {
+            // If still fails, return the original string
+            return data;
+          }
+        }
+        // Return the raw string if it doesn't look like JSON
+        return data;
+      }
+    }
+
+    // For other types (numbers, booleans, etc.), convert to string
+    return JSON.stringify(data, null, 2);
+  };
+
+  // Helper function to format headers nicely with API key masking
+  const formatHeaders = (headers: any): string => {
+    if (!headers) return '{}';
+    
+    if (typeof headers === 'object') {
+      // Clean up common headers for better readability
+      const cleanHeaders = { ...headers };
+      if (cleanHeaders.Authorization) {
+        // Mask the API key but show the type
+        const auth = cleanHeaders.Authorization;
+        if (auth.startsWith('Bearer ')) {
+          const key = auth.substring(7);
+          cleanHeaders.Authorization = `Bearer ${key.substring(0, 10)}...${key.substring(key.length - 4)}`;
+        }
+      }
+      return JSON.stringify(cleanHeaders, null, 2);
+    }
+    
+    return formatJsonData(headers);
+  };
+
+  // Helper function to format response data in an organized way
+  const formatResponseData = (responseData: any): string => {
+    if (!responseData) return '{}';
+    
+    if (typeof responseData === 'object') {
+      // For API responses, organize the data in a more readable way
+      const organized: any = {};
+      
+      // Show key info first
+      if (responseData.id) organized.id = responseData.id;
+      if (responseData.object) organized.object = responseData.object;
+      if (responseData.model) organized.model = responseData.model;
+      if (responseData.created) organized.created = responseData.created;
+      
+      // Then usage/token info
+      if (responseData.usage) organized.usage = responseData.usage;
+      
+      // Then the actual content
+      if (responseData.choices) organized.choices = responseData.choices;
+      if (responseData.content) organized.content = responseData.content;
+      
+      // Finally any other fields
+      Object.keys(responseData).forEach(key => {
+        if (!organized.hasOwnProperty(key) && key !== 'system_fingerprint') {
+          organized[key] = responseData[key];
+        }
+      });
+      
+      // Add system fingerprint at the end if present
+      if (responseData.system_fingerprint) {
+        organized.system_fingerprint = responseData.system_fingerprint;
+      }
+      
+      return JSON.stringify(organized, null, 2);
+    }
+    
+    return formatJsonData(responseData);
+  };
+
   // Icons
   const IconRefresh = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1996,7 +2095,7 @@ const Logs: React.FC = () => {
                           <Editor
                             height="120px"
                             language="json"
-                            value={JSON.stringify(selectedLog.api_call.headers_sent, null, 2)}
+                            value={formatJsonData(selectedLog.api_call.headers_sent)}
                             options={{
                               readOnly: true,
                               minimap: { enabled: false },
@@ -2034,7 +2133,7 @@ const Logs: React.FC = () => {
                           <Editor
                             height="200px"
                             language="json"
-                            value={JSON.stringify(selectedLog.api_call.payload_sent || selectedLog.api_call.attempted_payload, null, 2)}
+                            value={formatJsonData(selectedLog.api_call.payload_sent || selectedLog.api_call.attempted_payload)}
                             options={{
                               readOnly: true,
                               minimap: { enabled: false },
@@ -2382,7 +2481,7 @@ const Logs: React.FC = () => {
                             <Editor
                               height="150px"
                               language="json"
-                              value={JSON.stringify(selectedLog.original.headers || {}, null, 2)}
+                              value={formatHeaders(selectedLog.original.headers || {})}
                               options={{
                                 readOnly: true,
                                 minimap: { enabled: false },
@@ -2416,12 +2515,18 @@ const Logs: React.FC = () => {
                             <Editor
                               height="180px"
                               language="json"
-                              value={selectedLog.original.requestBody ? 
-                                JSON.stringify(
-                                  typeof selectedLog.original.requestBody === 'string' ? 
-                                    JSON.parse(selectedLog.original.requestBody) : selectedLog.original.requestBody, 
-                                  null, 2
-                                ) : 'No request body'}
+                              value={(() => {
+                                const requestBody = selectedLog.original.requestBody;
+                                
+                                if (!requestBody) {
+                                  // Show helpful message for GET requests
+                                  return selectedLog.original.method === 'GET' 
+                                    ? `// ${selectedLog.original.method} requests typically don't have a request body`
+                                    : 'No request body';
+                                }
+                                
+                                return formatJsonData(requestBody);
+                              })()}
                               options={{
                                 readOnly: true,
                                 minimap: { enabled: false },
@@ -2455,7 +2560,7 @@ const Logs: React.FC = () => {
                             <Editor
                               height="250px"
                               language="json"
-                              value={JSON.stringify(selectedLog.original.responseData || {}, null, 2)}
+                              value={formatResponseData(selectedLog.original.responseData || {})}
                               options={{
                                 readOnly: true,
                                 minimap: { enabled: false },
@@ -2492,10 +2597,10 @@ const Logs: React.FC = () => {
                               <Editor
                                 height="100px"
                                 language="json"
-                                value={JSON.stringify({
+                                value={formatJsonData({
                                   error: selectedLog.original.error,
                                   status: selectedLog.original.status
-                                }, null, 2)}
+                                })}
                                 options={{
                                   readOnly: true,
                                   minimap: { enabled: false },
@@ -2522,7 +2627,7 @@ const Logs: React.FC = () => {
                         <Editor
                           height="600px"
                           language="json"
-                          value={JSON.stringify({
+                          value={formatJsonData({
                             // Enhanced logging format
                             id: selectedLog.id,
                             timestamp: selectedLog.timestamp,
@@ -2536,7 +2641,7 @@ const Logs: React.FC = () => {
                             user_agent: selectedLog.user_agent,
                             ip_address: selectedLog.ip_address,
                             session_id: selectedLog.session_id
-                          }, null, 2)}
+                          })}
                           options={{
                             readOnly: true,
                             minimap: { enabled: false },
@@ -2622,7 +2727,7 @@ const Logs: React.FC = () => {
                           <Editor
                             height="300px"
                             language="json"
-                            value={JSON.stringify({
+                            value={formatJsonData({
                               timestamp: selectedLog.timestamp,
                               prompt: selectedLog.prompt,
                               model: selectedLog.model,
@@ -2631,7 +2736,7 @@ const Logs: React.FC = () => {
                               duration: selectedLog.duration,
                               success: selectedLog.success,
                               response: selectedLog.response
-                            }, null, 2)}
+                            })}
                             options={{
                               readOnly: true,
                               minimap: { enabled: false },

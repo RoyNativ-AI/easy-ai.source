@@ -1,13 +1,13 @@
 {
   "name": "@easyai/cli",
-  "version": "1.3.0",
+  "version": "3.0.14",
   "description": "AI development tool with CLI and dashboard",
   "main": "dist/index.js",
   "bin": {
     "easyai": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && cd ../web-ui && npm run build",
+    "build": "tsc && cd ../web-ui && npm run build && cp -r dist ../cli-source/frontend-dist",
     "build:server": "tsc",
     "build:frontend": "cd ../web-ui && npm run build",
     "dev": "tsx watch src/cli.ts",
@@ -24,6 +24,16 @@
   ],
   "author": "EasyAI",
   "license": "MIT",
+  "files": [
+    "dist/",
+    "frontend-dist/",
+    "scripts/",
+    "backend-server.js",
+    "enhanced-server.js",
+    "working-server.js",
+    "src/",
+    "tsconfig.json"
+  ],
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
     "axios": "^1.10.0",
@@ -35,7 +45,8 @@
     "express": "^4.18.2",
     "fs-extra": "^11.1.1",
     "inquirer": "^9.2.0",
-    "openai": "^4.104.0"
+    "openai": "^4.104.0",
+    "node-forge": "^1.3.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
@@ -43,6 +54,7 @@
     "@types/fs-extra": "^11.0.1",
     "@types/inquirer": "^9.0.3",
     "@types/node": "^20.0.0",
+    "@types/node-forge": "^1.3.1",
     "tsx": "^3.12.0",
     "typescript": "^5.0.0"
   }

@@ -1,9 +1,9 @@
 /**
  * Model Pricing Data
  * 
- * Generated from OpenRouter API on 2025-07-22T11:34:00.176Z
- * Total models: 318
- * Total mappings: 636
+ * Generated from OpenRouter CSV on 2025-07-23T02:34:52.375Z
+ * Total models: 321
+ * Total mappings: 644
  * 
  * Pricing is per token (direct from OpenRouter API)
  */
@@ -15,6 +15,33 @@ export interface ModelPricing {
 }
 
 export const MODEL_PRICING: Record<string, ModelPricing> = {
+  "qwen/qwen3-coder": {
+    "prompt": 0.000001,
+    "completion": 0.000005,
+    "name": "Qwen: Qwen3 Coder"
+  },
+  "qwen3-coder": {
+    "prompt": 0.000001,
+    "completion": 0.000005
+  },
+  "bytedance/ui-tars-1.5-7b": {
+    "prompt": 1e-7,
+    "completion": 2e-7,
+    "name": "Bytedance: UI-TARS 7B"
+  },
+  "ui-tars-1.5-7b": {
+    "prompt": 1e-7,
+    "completion": 2e-7
+  },
+  "google/gemini-2.5-flash-lite": {
+    "prompt": 1e-7,
+    "completion": 4e-7,
+    "name": "Google: Gemini 2.5 Flash Lite"
+  },
+  "gemini-2.5-flash-lite": {
+    "prompt": 1e-7,
+    "completion": 4e-7
+  },
   "qwen/qwen3-235b-a22b-07-25:free": {
     "prompt": 0,
     "completion": 0,
@@ -25,13 +52,13 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "completion": 0
   },
   "qwen/qwen3-235b-a22b-07-25": {
-    "prompt": 1.5e-7,
-    "completion": 8.5e-7,
+    "prompt": 1.2e-7,
+    "completion": 5.9e-7,
     "name": "Qwen: Qwen3 235B A22B 2507"
   },
   "qwen3-235b-a22b-07-25": {
-    "prompt": 1.5e-7,
-    "completion": 8.5e-7
+    "prompt": 1.2e-7,
+    "completion": 5.9e-7
   },
   "switchpoint/router": {
     "prompt": 8.5e-7,
@@ -171,7 +198,7 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "baidu/ernie-4.5-300b-a47b": {
     "prompt": 2.8e-7,
     "completion": 0.0000011,
-    "name": "Baidu: ERNIE 4.5 300B A47B "
+    "name": "Baidu: ERNIE 4.5 300B A47B"
   },
   "ernie-4.5-300b-a47b": {
     "prompt": 2.8e-7,
@@ -408,6 +435,10 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "name": "Anthropic: Claude Opus 4"
   },
   "claude-opus-4": {
+    "prompt": 0.000015,
+    "completion": 0.000075
+  },
+  "claude-3-opus": {
     "prompt": 0.000015,
     "completion": 0.000075
   },
@@ -792,7 +823,7 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "shisa-ai/shisa-v2-llama3.3-70b": {
     "prompt": 3e-8,
     "completion": 3e-8,
-    "name": "Shisa AI: Shisa V2 Llama 3.3 70B "
+    "name": "Shisa AI: Shisa V2 Llama 3.3 70B"
   },
   "shisa-v2-llama3.3-70b": {
     "prompt": 3e-8,
@@ -808,8 +839,8 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "completion": 0.000008
   },
   "gpt-4": {
-    "prompt": 0.000002,
-    "completion": 0.000008
+    "prompt": 0.00003,
+    "completion": 0.00006
   },
   "openai/gpt-4.1-mini": {
     "prompt": 4e-7,
@@ -1453,7 +1484,7 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "qwen/qwen-max": {
     "prompt": 0.0000016,
     "completion": 0.0000064,
-    "name": "Qwen: Qwen-Max "
+    "name": "Qwen: Qwen-Max"
   },
   "qwen-max": {
     "prompt": 0.0000016,
@@ -1846,24 +1877,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 4e-7,
     "completion": 4e-7
   },
-  "anthropic/claude-3.5-haiku:beta": {
-    "prompt": 8e-7,
-    "completion": 0.000004,
-    "name": "Anthropic: Claude 3.5 Haiku (self-moderated)"
-  },
-  "claude-3.5-haiku:beta": {
-    "prompt": 8e-7,
-    "completion": 0.000004
-  },
-  "anthropic/claude-3.5-haiku": {
-    "prompt": 8e-7,
-    "completion": 0.000004,
-    "name": "Anthropic: Claude 3.5 Haiku"
-  },
-  "claude-3.5-haiku": {
-    "prompt": 8e-7,
-    "completion": 0.000004
-  },
   "anthropic/claude-3.5-haiku-20241022:beta": {
     "prompt": 8e-7,
     "completion": 0.000004,
@@ -1879,6 +1892,24 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "name": "Anthropic: Claude 3.5 Haiku (2024-10-22)"
   },
   "claude-3.5-haiku-20241022": {
+    "prompt": 8e-7,
+    "completion": 0.000004
+  },
+  "anthropic/claude-3.5-haiku:beta": {
+    "prompt": 8e-7,
+    "completion": 0.000004,
+    "name": "Anthropic: Claude 3.5 Haiku (self-moderated)"
+  },
+  "claude-3.5-haiku:beta": {
+    "prompt": 8e-7,
+    "completion": 0.000004
+  },
+  "anthropic/claude-3.5-haiku": {
+    "prompt": 8e-7,
+    "completion": 0.000004,
+    "name": "Anthropic: Claude 3.5 Haiku"
+  },
+  "claude-3.5-haiku": {
     "prompt": 8e-7,
     "completion": 0.000004
   },
@@ -1972,14 +2003,14 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 3.75e-8,
     "completion": 1.5e-7
   },
-  "anthracite-org/magnum-v2-72b": {
-    "prompt": 0.000003,
-    "completion": 0.000003,
-    "name": "Magnum v2 72B"
+  "thedrummer/rocinante-12b": {
+    "prompt": 2e-7,
+    "completion": 5e-7,
+    "name": "TheDrummer: Rocinante 12B"
   },
-  "magnum-v2-72b": {
-    "prompt": 0.000003,
-    "completion": 0.000003
+  "rocinante-12b": {
+    "prompt": 2e-7,
+    "completion": 5e-7
   },
   "liquid/lfm-40b": {
     "prompt": 1.5e-7,
@@ -1990,32 +2021,14 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 1.5e-7,
     "completion": 1.5e-7
   },
-  "thedrummer/rocinante-12b": {
-    "prompt": 2e-7,
-    "completion": 5e-7,
-    "name": "TheDrummer: Rocinante 12B"
+  "anthracite-org/magnum-v2-72b": {
+    "prompt": 0.000003,
+    "completion": 0.000003,
+    "name": "Magnum v2 72B"
   },
-  "rocinante-12b": {
-    "prompt": 2e-7,
-    "completion": 5e-7
-  },
-  "meta-llama/llama-3.2-3b-instruct:free": {
-    "prompt": 0,
-    "completion": 0,
-    "name": "Meta: Llama 3.2 3B Instruct (free)"
-  },
-  "llama-3.2-3b-instruct:free": {
-    "prompt": 0,
-    "completion": 0
-  },
-  "meta-llama/llama-3.2-3b-instruct": {
-    "prompt": 3e-9,
-    "completion": 6e-9,
-    "name": "Meta: Llama 3.2 3B Instruct"
-  },
-  "llama-3.2-3b-instruct": {
-    "prompt": 3e-9,
-    "completion": 6e-9
+  "magnum-v2-72b": {
+    "prompt": 0.000003,
+    "completion": 0.000003
   },
   "meta-llama/llama-3.2-11b-vision-instruct:free": {
     "prompt": 0,
@@ -2053,6 +2066,24 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 5e-9,
     "completion": 1e-8
   },
+  "meta-llama/llama-3.2-3b-instruct:free": {
+    "prompt": 0,
+    "completion": 0,
+    "name": "Meta: Llama 3.2 3B Instruct (free)"
+  },
+  "llama-3.2-3b-instruct:free": {
+    "prompt": 0,
+    "completion": 0
+  },
+  "meta-llama/llama-3.2-3b-instruct": {
+    "prompt": 3e-9,
+    "completion": 6e-9,
+    "name": "Meta: Llama 3.2 3B Instruct"
+  },
+  "llama-3.2-3b-instruct": {
+    "prompt": 3e-9,
+    "completion": 6e-9
+  },
   "qwen/qwen-2.5-72b-instruct:free": {
     "prompt": 0,
     "completion": 0,
@@ -2089,12 +2120,12 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.0000011,
     "completion": 0.0000044
   },
-  "openai/o1-preview": {
+  "openai/o1-preview-2024-09-12": {
     "prompt": 0.000015,
     "completion": 0.00006,
-    "name": "OpenAI: o1-preview"
+    "name": "OpenAI: o1-preview (2024-09-12)"
   },
-  "o1-preview": {
+  "o1-preview-2024-09-12": {
     "prompt": 0.000015,
     "completion": 0.00006
   },
@@ -2107,12 +2138,12 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.0000011,
     "completion": 0.0000044
   },
-  "openai/o1-preview-2024-09-12": {
+  "openai/o1-preview": {
     "prompt": 0.000015,
     "completion": 0.00006,
-    "name": "OpenAI: o1-preview (2024-09-12)"
+    "name": "OpenAI: o1-preview"
   },
-  "o1-preview-2024-09-12": {
+  "o1-preview": {
     "prompt": 0.000015,
     "completion": 0.00006
   },
@@ -2143,15 +2174,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.0000025,
     "completion": 0.00001
   },
-  "sao10k/l3.1-euryale-70b": {
-    "prompt": 6.5e-7,
-    "completion": 7.5e-7,
-    "name": "Sao10K: Llama 3.1 Euryale 70B v2.2"
-  },
-  "l3.1-euryale-70b": {
-    "prompt": 6.5e-7,
-    "completion": 7.5e-7
-  },
   "qwen/qwen-2.5-vl-7b-instruct": {
     "prompt": 2e-7,
     "completion": 2e-7,
@@ -2160,6 +2182,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "qwen-2.5-vl-7b-instruct": {
     "prompt": 2e-7,
     "completion": 2e-7
+  },
+  "sao10k/l3.1-euryale-70b": {
+    "prompt": 6.5e-7,
+    "completion": 7.5e-7,
+    "name": "Sao10K: Llama 3.1 Euryale 70B v2.2"
+  },
+  "l3.1-euryale-70b": {
+    "prompt": 6.5e-7,
+    "completion": 7.5e-7
   },
   "microsoft/phi-3.5-mini-128k-instruct": {
     "prompt": 1e-7,
@@ -2224,15 +2255,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.0000025,
     "completion": 0.00001
   },
-  "meta-llama/llama-3.1-405b": {
-    "prompt": 0.000002,
-    "completion": 0.000002,
-    "name": "Meta: Llama 3.1 405B (base)"
-  },
-  "llama-3.1-405b": {
-    "prompt": 0.000002,
-    "completion": 0.000002
-  },
   "nothingiisreal/mn-celeste-12b": {
     "prompt": 8e-7,
     "completion": 0.0000012,
@@ -2242,6 +2264,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 8e-7,
     "completion": 0.0000012
   },
+  "meta-llama/llama-3.1-405b": {
+    "prompt": 0.000002,
+    "completion": 0.000002,
+    "name": "Meta: Llama 3.1 405B (base)"
+  },
+  "llama-3.1-405b": {
+    "prompt": 0.000002,
+    "completion": 0.000002
+  },
   "meta-llama/llama-3.1-70b-instruct": {
     "prompt": 1e-7,
     "completion": 2.8e-7,
@@ -2250,15 +2281,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "llama-3.1-70b-instruct": {
     "prompt": 1e-7,
     "completion": 2.8e-7
-  },
-  "meta-llama/llama-3.1-8b-instruct": {
-    "prompt": 1.5e-8,
-    "completion": 2e-8,
-    "name": "Meta: Llama 3.1 8B Instruct"
-  },
-  "llama-3.1-8b-instruct": {
-    "prompt": 1.5e-8,
-    "completion": 2e-8
   },
   "meta-llama/llama-3.1-405b-instruct:free": {
     "prompt": 0,
@@ -2277,6 +2299,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "llama-3.1-405b-instruct": {
     "prompt": 8e-7,
     "completion": 8e-7
+  },
+  "meta-llama/llama-3.1-8b-instruct": {
+    "prompt": 1.5e-8,
+    "completion": 2e-8,
+    "name": "Meta: Llama 3.1 8B Instruct"
+  },
+  "llama-3.1-8b-instruct": {
+    "prompt": 1.5e-8,
+    "completion": 2e-8
   },
   "mistralai/mistral-nemo:free": {
     "prompt": 0,
@@ -2404,24 +2435,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 9e-7,
     "completion": 9e-7
   },
-  "mistralai/mistral-7b-instruct:free": {
-    "prompt": 0,
-    "completion": 0,
-    "name": "Mistral: Mistral 7B Instruct (free)"
-  },
-  "mistral-7b-instruct:free": {
-    "prompt": 0,
-    "completion": 0
-  },
-  "mistralai/mistral-7b-instruct": {
-    "prompt": 2.8e-8,
-    "completion": 5.4e-8,
-    "name": "Mistral: Mistral 7B Instruct"
-  },
-  "mistral-7b-instruct": {
-    "prompt": 2.8e-8,
-    "completion": 5.4e-8
-  },
   "mistralai/mistral-7b-instruct-v0.3": {
     "prompt": 2.8e-8,
     "completion": 5.4e-8,
@@ -2439,6 +2452,24 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "hermes-2-pro-llama-3-8b": {
     "prompt": 2.5e-8,
     "completion": 4e-8
+  },
+  "mistralai/mistral-7b-instruct:free": {
+    "prompt": 0,
+    "completion": 0,
+    "name": "Mistral: Mistral 7B Instruct (free)"
+  },
+  "mistral-7b-instruct:free": {
+    "prompt": 0,
+    "completion": 0
+  },
+  "mistralai/mistral-7b-instruct": {
+    "prompt": 2.8e-8,
+    "completion": 5.4e-8,
+    "name": "Mistral: Mistral 7B Instruct"
+  },
+  "mistral-7b-instruct": {
+    "prompt": 2.8e-8,
+    "completion": 5.4e-8
   },
   "microsoft/phi-3-mini-128k-instruct": {
     "prompt": 1e-7,
@@ -2470,7 +2501,7 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "google/gemini-flash-1.5": {
     "prompt": 7.5e-8,
     "completion": 3e-7,
-    "name": "Google: Gemini 1.5 Flash "
+    "name": "Google: Gemini 1.5 Flash"
   },
   "gemini-flash-1.5": {
     "prompt": 7.5e-8,
@@ -2484,15 +2515,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "gpt-4o-2024-05-13": {
     "prompt": 0.000005,
     "completion": 0.000015
-  },
-  "meta-llama/llama-guard-2-8b": {
-    "prompt": 2e-7,
-    "completion": 2e-7,
-    "name": "Meta: LlamaGuard 2 8B"
-  },
-  "llama-guard-2-8b": {
-    "prompt": 2e-7,
-    "completion": 2e-7
   },
   "openai/gpt-4o": {
     "prompt": 0.0000025,
@@ -2511,6 +2533,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "gpt-4o:extended": {
     "prompt": 0.000006,
     "completion": 0.000018
+  },
+  "meta-llama/llama-guard-2-8b": {
+    "prompt": 2e-7,
+    "completion": 2e-7,
+    "name": "Meta: LlamaGuard 2 8B"
+  },
+  "llama-guard-2-8b": {
+    "prompt": 2e-7,
+    "completion": 2e-7
   },
   "sao10k/fimbulvetr-11b-v2": {
     "prompt": 8e-7,
@@ -2575,6 +2606,10 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.00000125,
     "completion": 0.000005
   },
+  "gemini-pro": {
+    "prompt": 0.00000125,
+    "completion": 0.000005
+  },
   "cohere/command-r-plus": {
     "prompt": 0.000003,
     "completion": 0.000015,
@@ -2602,15 +2637,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 8e-7,
     "completion": 8e-7
   },
-  "cohere/command-r": {
-    "prompt": 5e-7,
-    "completion": 0.0000015,
-    "name": "Cohere: Command R"
-  },
-  "command-r": {
-    "prompt": 5e-7,
-    "completion": 0.0000015
-  },
   "cohere/command": {
     "prompt": 0.000001,
     "completion": 0.000002,
@@ -2619,6 +2645,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "command": {
     "prompt": 0.000001,
     "completion": 0.000002
+  },
+  "cohere/command-r": {
+    "prompt": 5e-7,
+    "completion": 0.0000015,
+    "name": "Cohere: Command R"
+  },
+  "command-r": {
+    "prompt": 5e-7,
+    "completion": 0.0000015
   },
   "anthropic/claude-3-haiku:beta": {
     "prompt": 2.5e-7,
@@ -2629,23 +2664,14 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 2.5e-7,
     "completion": 0.00000125
   },
-  "claude-3-haiku": {
-    "prompt": 2.5e-7,
-    "completion": 0.00000125
-  },
   "anthropic/claude-3-haiku": {
     "prompt": 2.5e-7,
     "completion": 0.00000125,
     "name": "Anthropic: Claude 3 Haiku"
   },
-  "anthropic/claude-3-sonnet": {
-    "prompt": 0.000003,
-    "completion": 0.000015,
-    "name": "Anthropic: Claude 3 Sonnet"
-  },
-  "claude-3-sonnet": {
-    "prompt": 0.000003,
-    "completion": 0.000015
+  "claude-3-haiku": {
+    "prompt": 2.5e-7,
+    "completion": 0.00000125
   },
   "anthropic/claude-3-opus:beta": {
     "prompt": 0.000015,
@@ -2656,14 +2682,23 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.000015,
     "completion": 0.000075
   },
-  "claude-3-opus": {
-    "prompt": 0.000015,
-    "completion": 0.000075
-  },
   "anthropic/claude-3-opus": {
     "prompt": 0.000015,
     "completion": 0.000075,
     "name": "Anthropic: Claude 3 Opus"
+  },
+  "anthropic/claude-3-sonnet": {
+    "prompt": 0.000003,
+    "completion": 0.000015,
+    "name": "Anthropic: Claude 3 Sonnet"
+  },
+  "claude-3-sonnet": {
+    "prompt": 0.000003,
+    "completion": 0.000015
+  },
+  "claude-3-sonnet-20240229": {
+    "prompt": 0.000003,
+    "completion": 0.000015
   },
   "cohere/command-r-03-2024": {
     "prompt": 5e-7,
@@ -2683,15 +2718,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.000002,
     "completion": 0.000006
   },
-  "openai/gpt-4-turbo-preview": {
-    "prompt": 0.00001,
-    "completion": 0.00003,
-    "name": "OpenAI: GPT-4 Turbo Preview"
-  },
-  "gpt-4-turbo-preview": {
-    "prompt": 0.00001,
-    "completion": 0.00003
-  },
   "openai/gpt-3.5-turbo-0613": {
     "prompt": 0.000001,
     "completion": 0.000002,
@@ -2702,8 +2728,17 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "completion": 0.000002
   },
   "gpt-3.5-turbo": {
-    "prompt": 0.000001,
-    "completion": 0.000002
+    "prompt": 5e-7,
+    "completion": 0.0000015
+  },
+  "openai/gpt-4-turbo-preview": {
+    "prompt": 0.00001,
+    "completion": 0.00003,
+    "name": "OpenAI: GPT-4 Turbo Preview"
+  },
+  "gpt-4-turbo-preview": {
+    "prompt": 0.00001,
+    "completion": 0.00003
   },
   "nousresearch/nous-hermes-2-mixtral-8x7b-dpo": {
     "prompt": 6e-7,
@@ -2858,11 +2893,6 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 6e-8,
     "completion": 6e-8
   },
-  "openai/gpt-4": {
-    "prompt": 0.00003,
-    "completion": 0.00006,
-    "name": "OpenAI: GPT-4"
-  },
   "openai/gpt-4-0314": {
     "prompt": 0.00003,
     "completion": 0.00006,
@@ -2872,12 +2902,17 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     "prompt": 0.00003,
     "completion": 0.00006
   },
+  "openai/gpt-4": {
+    "prompt": 0.00003,
+    "completion": 0.00006,
+    "name": "OpenAI: GPT-4"
+  },
   "openai/gpt-3.5-turbo": {
     "prompt": 5e-7,
     "completion": 0.0000015,
     "name": "OpenAI: GPT-3.5 Turbo"
   }
-}
+};
 
 export function calculateCost(model: string, tokens: number, promptTokens?: number, completionTokens?: number): number {
   // Try exact match first
@@ -2902,7 +2937,26 @@ export function calculateCost(model: string, tokens: number, promptTokens?: numb
     return tokens * rateInfo.prompt
   }
   
-  // If no match found, return minimal cost to avoid errors
-  console.warn(`⚠️ No pricing found for model: ${model}`)
-  return tokens * 0.00001 // Generic fallback: $0.01 per 1K tokens
+  // Fallback to a default rate if model not found (roughly GPT-3.5 pricing)
+  return tokens * 0.000001
+}
+
+export function getModelInfo(model: string): ModelPricing | null {
+  // Try exact match first
+  let rateInfo: ModelPricing | undefined = MODEL_PRICING[model]
+  
+  if (!rateInfo) {
+    // Try partial matches
+    const modelKey = Object.keys(MODEL_PRICING).find(key => 
+      model.toLowerCase().includes(key.toLowerCase()) || 
+      key.toLowerCase().includes(model.toLowerCase())
+    )
+    rateInfo = modelKey ? MODEL_PRICING[modelKey] : undefined
+  }
+  
+  return rateInfo || null
+}
+
+export function listAvailableModels(): string[] {
+  return Object.keys(MODEL_PRICING).filter(key => MODEL_PRICING[key].name)
 }

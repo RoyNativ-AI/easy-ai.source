@@ -13,13 +13,9 @@ export async function initializeProject(userId?: string): Promise<void> {
     throw new Error('EasyAI is already initialized in this project');
   }
 
-  // Check if this is a trial setup
-  const isTrialSetup = userId && userId.startsWith('easyai_');
+  // All setups are the same - no trial mode
 
   console.log(chalk.blue('🚀 Initializing EasyAI...'));
-  if (isTrialSetup) {
-    console.log(chalk.cyan('🎯 Trial mode detected - setting up demo configuration'));
-  }
 
   // Create directory structure
   await fs.ensureDir(path.join(easyaiDir, 'prompts', 'examples'));
@@ -36,41 +32,31 @@ export async function initializeProject(userId?: string): Promise<void> {
   // Create initial log files
   await createLogFiles(easyaiDir);
 
-  // Setup auto-capture logging
-  const autoCaptureEnabled = await setupAutoCapture(projectDir);
+  // Setup Python and Node.js modules so they work from anywhere
+  await setupPythonModule(easyaiDir);
+  await setupNodeModule(easyaiDir);
 
-  console.log(chalk.green('📁 Created folder structure'));
-  console.log(chalk.green('📝 Created example prompts'));
-  console.log(chalk.green('⚙️  Created configuration files'));
-  
-  if (autoCaptureEnabled) {
-    console.log(chalk.green('🔍 Auto-capture logging enabled'));
-  }
+  // Setup simple import-based monitoring
+  await setupSimpleMonitoring(easyaiDir);
+
+  console.log(chalk.green('✅ EasyAI initialized successfully!'));
   
   console.log(chalk.yellow('💡 Next steps:'));
-  
-  if (isTrialSetup) {
-    console.log(chalk.cyan('   🎉 You\'re ready to try EasyAI!'));
-    console.log(chalk.cyan('   1. Run "easyai ui" to open the dashboard'));
-    console.log(chalk.cyan('   2. Test the playground with demo models'));
-    if (autoCaptureEnabled) {
-      console.log(chalk.cyan('   3. Run your app with: node easyai-start.js (auto-capture enabled)'));
-    }
-    console.log(chalk.yellow('   💡 To unlock full features, add your own API keys to easyai/config/easyai.env'));
-  } else {
-    console.log(chalk.yellow('   1. Add your API keys to easyai/config/easyai.env'));
-    if (autoCaptureEnabled) {
-      console.log(chalk.yellow('   2. Run your app with: node easyai-start.js'));
-      console.log(chalk.yellow('   3. Run "easyai ui" to open the dashboard and view logs'));
-    } else {
-      console.log(chalk.yellow('   2. Add import \'easyai/auto-capture\' to your main file for manual logging'));
-      console.log(chalk.yellow('   3. Run "easyai ui" to open the dashboard'));
-    }
-  }
+  console.log(chalk.yellow('   1. Add your API keys to easyai/config/easyai.env'));
+  console.log(chalk.yellow('   2. Add import to your code:'));
+  console.log(chalk.green('      Python: import easyai  # Add this line at top'));
+  console.log(chalk.green('      Node.js: require("easyai")  # Add this line at top'));
+  console.log(chalk.yellow('   3. Run your code normally - full content captured!'));
+  console.log(chalk.yellow('   4. View dashboard: easyai ui'));
+  console.log(chalk.gray(''));
+  console.log(chalk.cyan('✨ Simple, reliable monitoring - just one import line!'));
 }
 
 async function createExamplePrompts(easyaiDir: string): Promise<void> {
   const examplesDir = path.join(easyaiDir, 'prompts', 'examples');
+  
+  // Ensure the examples directory exists
+  await fs.ensureDir(examplesDir);
 
   await fs.writeFile(
     path.join(examplesDir, 'code-review.md'),
@@ -131,46 +117,90 @@ Analyze the following code and identify potential bugs:
 ## Output
 Provide implementation plan and code for the requested feature.`
   );
+  
+  console.log(chalk.green('📁 Created example prompt templates in easyai/prompts/examples/'));
 }
+
+async function createSetupInstructions(easyaiDir: string): Promise<void> {
+  const instructionsPath = path.join(easyaiDir, 'setup-instructions.md');
+  
+  const instructions = `# EasyAI Auto-Capture Setup
+
+## Quick Start
+
+### Python
+Add this line to the **top** of your Python files:
+\`\`\`python
+import easyai
+\`\`\`
+
+Example:
+\`\`\`python
+import easyai  # Add this line!
+import requests
+
+response = requests.post('https://api.openai.com/v1/chat/completions', 
+    headers={'Authorization': f'Bearer {api_key}'},
+    json={'model': 'gpt-3.5-turbo', 'messages': [...]})
+# Request/response automatically logged to easyai/logs/calls.jsonl
+\`\`\`
+
+### Node.js
+Add this line to the **top** of your JavaScript/TypeScript files:
+\`\`\`javascript
+require('easyai');
+\`\`\`
+
+Example:
+\`\`\`javascript
+require('easyai');  // Add this line!
+const axios = require('axios');
+
+const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+  model: 'gpt-3.5-turbo',
+  messages: [...]
+}, {
+  headers: { 'Authorization': \`Bearer \${apiKey}\` }
+});
+// Request/response automatically logged to easyai/logs/calls.jsonl
+\`\`\`
+
+## What Gets Captured
+
+- ✅ **Full request bodies** (JSON data sent to APIs)
+- ✅ **Complete response data** (API responses)
+- ✅ **Headers and metadata**
+- ✅ **Timing and performance metrics**
+- ✅ **Cost calculations**
+- ✅ **Error information**
+
+## View Captured Data
+
+- **Dashboard**: Run \`easyai ui\` to view in browser
+- **Log files**: Check \`easyai/logs/calls.jsonl\` for raw data
+
+## Supported APIs
+
+- OpenAI (GPT models)
+- Anthropic (Claude)
+- Google (Gemini)
+- OpenRouter
+- Any HTTP/HTTPS API requests
+
+---
+*Generated by EasyAI CLI*
+`;
+
+  await fs.writeFile(instructionsPath, instructions);
+  console.log(chalk.green('📝 Created setup instructions: easyai/setup-instructions.md'));
+}
+
 
 async function createConfigFiles(easyaiDir: string, userId?: string): Promise<void> {
   const configDir = path.join(easyaiDir, 'config');
   
-  // Check if user provided a customer key (trial setup)
-  const isTrialSetup = userId && userId.startsWith('easyai_');
-  
-  // Create .env file with demo keys if trial setup
-  let envContent = '';
-  
-  if (isTrialSetup) {
-    envContent = `# EasyAI Trial Configuration
-# You're using EasyAI trial with limited access
-# To unlock full features, add your own API keys below
-
-# OpenAI Configuration (Demo - Limited)
-OPENAI_API_KEY=demo_openai_key
-
-# Anthropic Configuration (Demo - Limited)
-ANTHROPIC_API_KEY=demo_anthropic_key
-
-# Google Gemini Configuration  
-GOOGLE_API_KEY=
-
-# OpenRouter Configuration
-OPENROUTER_API_KEY=
-
-# Ollama Configuration
-OLLAMA_BASE_URL=
-
-# EasyAI Configuration
-EASYAI_USER_ID=${userId}
-EASYAI_PROJECT_ID=${generateId()}
-EASYAI_LOG_LEVEL=info
-EASYAI_PORT=7542
-EASYAI_TRIAL_MODE=true
-`;
-  } else {
-    envContent = `# OpenAI Configuration
+  // Create environment configuration
+  const envContent = `# OpenAI Configuration
 OPENAI_API_KEY=
 
 # Anthropic Configuration  
@@ -191,29 +221,17 @@ EASYAI_PROJECT_ID=${generateId()}
 EASYAI_LOG_LEVEL=info
 EASYAI_PORT=7542
 `;
-  }
 
   await fs.writeFile(path.join(configDir, 'easyai.env'), envContent);
 
-  // Create settings.json
+  // Create settings.json with minimal configuration
   const settings = {
     ui: {
-      theme: 'dark',
-      autoSave: true
-    },
-    models: {
-      openai: 'gpt-4',
-      anthropic: 'claude-3-sonnet',
-      default: 'gpt-4'
+      theme: 'dark'
     },
     logging: {
       enabled: true,
-      includeResponses: true,
-      retention: '30d'
-    },
-    prompts: {
-      autoBackup: true,
-      validateSyntax: true
+      includeResponses: true
     }
   };
 
@@ -230,172 +248,171 @@ async function createLogFiles(easyaiDir: string): Promise<void> {
   // Create legacy log file in config (for compatibility)
   await fs.writeFile(path.join(configDir, 'easyai.jsonl'), '');
   
-  // Create auto-capture log file
-  await fs.writeFile(path.join(logsDir, 'auto-capture.jsonl'), '');
-  
   // Note: analytics.json is no longer needed - analytics are calculated directly from log files
 }
 
-async function setupAutoCapture(projectDir: string): Promise<boolean> {
-  console.log('\n' + chalk.cyan('🧵 EasyAI Auto-Capture Setup'));
-  console.log(chalk.gray('Auto-capture can automatically log HTTP requests (axios/fetch) without code changes.'));
-  
-  const { enableAutoCapture } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'enableAutoCapture',
-      message: 'Enable automatic API logging?',
-      default: true
-    }
-  ]);
 
-  if (enableAutoCapture) {
-    // Detect main entry file
-    const entryFile = await detectEntryFile(projectDir);
-    
-    if (entryFile) {
-      console.log(chalk.gray(`📁 Detected entry file: ${entryFile}`));
-      await createWrapperFile(projectDir, entryFile);
-      console.log(chalk.green('✅ Created wrapper file: easyai-start.js'));
-      
-      console.log(chalk.cyan('\n📦 Auto-capture logging is now enabled!'));
-      console.log(chalk.gray('▶  Run your app with: node easyai-start.js'));
-      console.log(chalk.gray('⚙️  Prefer manual control? Add: require(\'easyai/auto-capture\') to your entry file'));
-      
-      return true;
-    } else {
-      console.log(chalk.yellow('⚠️  Could not detect main entry file'));
-      await createManualInstructions(projectDir);
-      return false;
-    }
-  } else {
-    console.log(chalk.gray('⚙️  Auto-capture disabled. You can enable it later by adding:'));
-    console.log(chalk.gray('   require(\'easyai/auto-capture\')'));
-    console.log(chalk.gray('   to your main application file.'));
-    return false;
-  }
-}
 
-async function detectEntryFile(projectDir: string): Promise<string | null> {
-  // Check package.json main field
-  const packageJsonPath = path.join(projectDir, 'package.json');
-  if (await fs.pathExists(packageJsonPath)) {
-    try {
-      const packageJson = await fs.readJSON(packageJsonPath);
-      if (packageJson.main) {
-        const mainFile = packageJson.main;
-        if (await fs.pathExists(path.join(projectDir, mainFile))) {
-          return mainFile;
-        }
-      }
-    } catch (error) {
-      // Continue with fallback detection
-    }
-  }
 
-  // Common entry file patterns
-  const commonEntries = [
-    'index.js',
-    'app.js',
-    'server.js',
-    'main.js',
-    'src/index.js',
-    'src/app.js',
-    'src/server.js',
-    'src/main.js',
-    'dist/index.js',
-    'build/index.js'
-  ];
-
-  for (const entry of commonEntries) {
-    if (await fs.pathExists(path.join(projectDir, entry))) {
-      return entry;
-    }
-  }
-
-  return null;
-}
-
-async function createWrapperFile(projectDir: string, entryFile: string): Promise<void> {
-  const wrapperPath = path.join(projectDir, 'easyai-start.js');
-  
-  const wrapperContent = `#!/usr/bin/env node
-
-/**
- * EasyAI Auto-Capture Wrapper
- * 
- * This file automatically enables EasyAI's API logging without requiring
- * any changes to your application code.
- * 
- * Generated by: easyai init
- * Entry file: ${entryFile}
- * 
- * To disable auto-capture and use manual import instead:
- * 1. Delete this file
- * 2. Add require('easyai/auto-capture') to your main application file
- */
-
-console.log('🚀 Starting application with EasyAI auto-capture...');
-
-// Enable EasyAI auto-capture interceptors
-try {
-  require('easyai/auto-capture');
-} catch (error) {
-  console.warn('⚠️  EasyAI auto-capture not found. Make sure easyai is installed.');
-}
-
-// Start the original application
-require('./${entryFile}');
-`;
-
-  await fs.writeFile(wrapperPath, wrapperContent);
-  
-  // Make it executable
+async function setupPythonModule(easyaiDir: string): Promise<void> {
   try {
-    await fs.chmod(wrapperPath, 0o755);
+    // Get the path to the globally installed package
+    const packageRoot = path.dirname(require.resolve('@easyai/cli/package.json'));
+    const projectRoot = path.dirname(easyaiDir);
+    
+    // Create a local easyai.py file that imports from the global package
+    const localEasyAiPath = path.join(projectRoot, 'easyai.py');
+    
+    const easyaiContent = `"""
+EasyAI - Simple Auto-Capture for AI API Monitoring
+
+Just import this module to automatically start logging AI API requests:
+    import easyai
+
+All requests to AI providers will be automatically logged to easyai/logs/calls.jsonl
+"""
+
+import os
+import sys
+
+# Only initialize once
+if not hasattr(sys, '_easyai_initialized'):
+    sys._easyai_initialized = True
+    
+    try:
+        # Try to find the globally installed easyai package
+        import subprocess
+        import importlib.util
+        
+        # Get the npm global package location
+        try:
+            result = subprocess.run(['npm', 'root', '-g'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                npm_global_root = result.stdout.strip()
+                interceptor_path = os.path.join(npm_global_root, '@easyai', 'cli', 'scripts', 'python', 'easyai_interceptor.py')
+                
+                if os.path.exists(interceptor_path):
+                    # Load the interceptor module dynamically
+                    spec = importlib.util.spec_from_file_location("easyai_interceptor", interceptor_path)
+                    if spec and spec.loader:
+                        interceptor_module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(interceptor_module)
+                        print("[EasyAI] Auto-capture initialized - all AI API requests will be logged")
+                    else:
+                        raise ImportError("Could not load interceptor spec")
+                else:
+                    raise ImportError(f"Interceptor not found at {interceptor_path}")
+            else:
+                raise ImportError("Could not find npm global root")
+                
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+            # Fallback: try common global npm locations
+            possible_locations = [
+                '/usr/local/lib/node_modules/@easyai/cli/scripts/python/easyai_interceptor.py',
+                '/opt/homebrew/lib/node_modules/@easyai/cli/scripts/python/easyai_interceptor.py',
+                os.path.expanduser('~/.npm-global/lib/node_modules/@easyai/cli/scripts/python/easyai_interceptor.py'),
+            ]
+            
+            interceptor_loaded = False
+            for interceptor_path in possible_locations:
+                if os.path.exists(interceptor_path):
+                    spec = importlib.util.spec_from_file_location("easyai_interceptor", interceptor_path)
+                    if spec and spec.loader:
+                        interceptor_module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(interceptor_module)
+                        print("[EasyAI] Auto-capture initialized - all AI API requests will be logged")
+                        interceptor_loaded = True
+                        break
+            
+            if not interceptor_loaded:
+                raise ImportError("Could not find EasyAI interceptor in any expected location")
+                
+    except Exception as e:
+        print(f"[EasyAI] Warning: Could not initialize auto-capture: {e}")
+        print("[EasyAI] Make sure @easyai/cli is installed globally: npm install -g @easyai/cli")
+
+# Version info
+__version__ = "3.0.4"
+`;
+
+    await fs.writeFile(localEasyAiPath, easyaiContent);
+    console.log(chalk.green('📄 Created local easyai.py module'));
+    
   } catch (error) {
-    // Permissions not supported on this system, ignore
+    console.warn(chalk.yellow('⚠️  Could not create local easyai.py module'));
   }
 }
 
-async function createManualInstructions(projectDir: string): Promise<void> {
-  const instructionsPath = path.join(projectDir, 'easyai-setup.md');
+async function setupNodeModule(easyaiDir: string): Promise<void> {
+  try {
+    const projectRoot = path.dirname(easyaiDir);
+    
+    // Create package.json if it doesn't exist
+    const packageJsonPath = path.join(projectRoot, 'package.json');
+    if (!await fs.pathExists(packageJsonPath)) {
+      const basicPackageJson = {
+        name: path.basename(projectRoot),
+        version: '1.0.0',
+        description: '',
+        main: 'index.js',
+        scripts: {
+          test: 'echo "Error: no test specified" && exit 1'
+        },
+        keywords: [],
+        author: '',
+        license: 'ISC'
+      };
+      await fs.writeJSON(packageJsonPath, basicPackageJson, { spaces: 2 });
+    }
+    
+    // Create local node_modules/easyai directory with the auto-capture module
+    const nodeModulesDir = path.join(projectRoot, 'node_modules', 'easyai');
+    await fs.ensureDir(nodeModulesDir);
+    
+    // Get the global package location and copy auto-capture files
+    const packageRoot = path.dirname(require.resolve('@easyai/cli/package.json'));
+    
+    // Copy the compiled auto-capture and pricing modules
+    const autoCaptureSource = path.join(packageRoot, 'dist', 'utils', 'auto-capture.js');
+    const pricingSource = path.join(packageRoot, 'dist', 'utils', 'pricing.js');
+    
+    if (await fs.pathExists(autoCaptureSource) && await fs.pathExists(pricingSource)) {
+      await fs.copy(autoCaptureSource, path.join(nodeModulesDir, 'auto-capture.js'));
+      await fs.copy(pricingSource, path.join(nodeModulesDir, 'pricing.js'));
+      
+      // Create index.js that exports the auto-capture module
+      const indexContent = `module.exports = require('./auto-capture.js');`;
+      await fs.writeFile(path.join(nodeModulesDir, 'index.js'), indexContent);
+      
+      // Create package.json for the local module
+      const modulePackageJson = {
+        name: 'easyai',
+        version: '3.0.4',
+        description: 'EasyAI auto-capture module',
+        main: 'index.js'
+      };
+      await fs.writeJSON(path.join(nodeModulesDir, 'package.json'), modulePackageJson, { spaces: 2 });
+      
+      console.log(chalk.green('📦 Created local Node.js easyai module'));
+    }
+    
+  } catch (error) {
+    console.warn(chalk.yellow('⚠️  Could not create local Node.js easyai module'));
+  }
+}
+
+async function setupSimpleMonitoring(easyaiDir: string): Promise<boolean> {
+  console.log('\n' + chalk.cyan('🌐 EasyAI Auto-Capture Setup'));
+  console.log(chalk.gray('Setting up simple import-based monitoring for Python and Node.js'));
   
-  const instructions = `# EasyAI Auto-Capture Setup
-
-Since we couldn't automatically detect your main entry file, you can enable auto-capture manually:
-
-## Option 1: Manual Import (Recommended)
-Add this line to the **top** of your main application file:
-\`\`\`javascript
-require('easyai/auto-capture');
-\`\`\`
-
-## Option 2: Create Custom Wrapper
-Create a wrapper file (e.g., \`start-with-logging.js\`):
-\`\`\`javascript
-// Enable EasyAI auto-capture
-require('easyai/auto-capture');
-
-// Start your application
-require('./your-main-file.js');
-\`\`\`
-
-Then run: \`node start-with-logging.js\`
-
-## What gets logged?
-- All HTTP requests (axios, fetch)
-- Request/response data (sensitive data is redacted)
-- Performance metrics (duration, status codes)
-- Error information
-
-## View logs
-Run \`easyai ui\` to view captured requests in the dashboard.
-
----
-Generated by EasyAI CLI
-`;
-
-  await fs.writeFile(instructionsPath, instructions);
-  console.log(chalk.green('📝 Created setup instructions: easyai-setup.md'));
+  // Create setup instructions
+  await createSetupInstructions(easyaiDir);
+  
+  console.log(chalk.green('✅ Auto-capture configured!'));
+  console.log(chalk.cyan('\n🎉 Simple monitoring is now ready!'));
+  console.log(chalk.green('   ✅ Full request/response capture for Python & Node.js'));
+  console.log(chalk.green('   ✅ Just add one import line to your code'));
+  console.log(chalk.green('   ✅ Automatic logging to easyai/logs/calls.jsonl'));
+  
+  return true;
 }
