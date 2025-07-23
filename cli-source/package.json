@@ -1,6 +1,6 @@
 {
   "name": "@easyai/cli",
-  "version": "3.0.21",
+  "version": "3.0.22",
   "description": "AI development tool with CLI and dashboard",
   "main": "dist/index.js",
   "bin": {

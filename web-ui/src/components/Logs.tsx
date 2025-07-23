@@ -1237,30 +1237,8 @@ const Logs: React.FC = () => {
 
                           {/* Prompt Analysis Indicator */}
                           {(() => {
-                            // Debug info
-                            console.log('Log prompt_analysis:', log.prompt_analysis);
-                            console.log('Log source:', log.source);
-                            
                             const sourceInfo = getPromptSourceIcon(log.prompt_analysis);
-                            if (!sourceInfo) {
-                              // Show debug indicator if no analysis
-                              return (
-                                <div style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  backgroundColor: '#ffffff',
-                                  border: '1px solid #9ca3af',
-                                  borderRadius: '6px',
-                                  padding: '4px 8px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: '500'
-                                }}>
-                                  <span>⚫</span>
-                                  <span style={{ color: '#9ca3af' }}>No Analysis</span>
-                                </div>
-                              );
-                            }
+                            if (!sourceInfo) return null; // Only show if analysis exists
                             
                             return (
                               <div style={{
@@ -1524,7 +1502,7 @@ const Logs: React.FC = () => {
                         fontSize: '0.875rem',
                         fontWeight: '600',
                         color: '#374151',
-                        width: '120px'
+                        width: '140px'
                       }}>
                         Actions
                       </th>
@@ -2008,25 +1986,21 @@ const Logs: React.FC = () => {
                             onClick={() => handleViewLog(log)}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#5b61eb',
-                              color: '#ffffff',
-                              border: 'none',
+                              backgroundColor: '#f3f4f6',
+                              color: '#374151',
+                              border: '1px solid #d1d5db',
                               borderRadius: '6px',
                               fontSize: '0.75rem',
                               fontWeight: '500',
                               cursor: 'pointer',
                               transition: 'all 0.2s ease',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                              whiteSpace: 'nowrap'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#4f46e5'
-                              e.currentTarget.style.transform = 'translateY(-1px)'
-                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.12)'
+                              e.currentTarget.style.backgroundColor = '#e5e7eb'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#5b61eb'
-                              e.currentTarget.style.transform = 'translateY(0)'
-                              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'
+                              e.currentTarget.style.backgroundColor = '#f3f4f6'
                             }}
                           >
                             View Details
