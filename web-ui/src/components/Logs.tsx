@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Editor from '@monaco-editor/react'
-import { LogEntry } from '../types'
+import { LogEntry, PromptAnalysis } from '../types'
 import { useUniversalSearch, SearchModal } from '../hooks/useUniversalSearch'
 
 const Logs: React.FC = () => {
@@ -673,6 +673,44 @@ const Logs: React.FC = () => {
     if (ms < 1000) return `${ms}ms`
     return `${(ms / 1000).toFixed(1)}s`
   }
+
+  // Prompt analysis helper functions
+  const getPromptSourceIcon = (promptAnalysis?: PromptAnalysis) => {
+    if (!promptAnalysis) return null;
+    
+    switch (promptAnalysis.source) {
+      case 'library':
+        return { icon: '🟢', text: 'Library', color: '#10b981' };
+      case 'hardcoded':
+        return { icon: '🟡', text: 'Hardcoded', color: '#f59e0b' };
+      case 'mixed':
+        return { icon: '🔴', text: 'Mixed', color: '#ef4444' };
+      case 'unknown':
+        return { icon: '⚪', text: 'Unknown', color: '#6b7280' };
+      default:
+        return null;
+    }
+  };
+
+  const getPromptHealthScore = (logs: LogEntry[]) => {
+    if (logs.length === 0) return 0;
+    
+    const logsWithAnalysis = logs.filter(log => log.prompt_analysis);
+    if (logsWithAnalysis.length === 0) return 0;
+    
+    const libraryLogs = logsWithAnalysis.filter(log => 
+      log.prompt_analysis?.source === 'library'
+    );
+    
+    return Math.round((libraryLogs.length / logsWithAnalysis.length) * 100);
+  };
+
+  const formatCodeLocation = (codeLocation?: PromptAnalysis['code_location']) => {
+    if (!codeLocation) return null;
+    
+    const fileName = codeLocation.file.split('/').pop() || codeLocation.file;
+    return `${fileName}:${codeLocation.line} (${codeLocation.function})`;
+  };
 
   if (loading) {
     return (
@@ -2418,189 +2456,43 @@ const Logs: React.FC = () => {
                       </p>
                     </div>
 {(selectedLog.source === 'workspace' || selectedLog.source === 'playground') && selectedLog.original ? (
-                      // Auto-capture format with separate blocks
-                      <>
-                        {/* Request Overview */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                          <h4 style={{ 
-                            fontSize: '0.875rem', 
-                            fontWeight: '600', 
-                            color: '#374151',
-                            marginBottom: '0.5rem'
-                          }}>
-                            🔍 Request Overview
-                          </h4>
-                          <div style={{
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: '#f8fafc'
-                          }}>
-                            <Editor
-                              height="120px"
-                              language="json"
-                              value={JSON.stringify({
-                                id: selectedLog.id,
-                                timestamp: selectedLog.timestamp,
-                                method: selectedLog.original.method,
-                                url: selectedLog.original.url,
-                                status: selectedLog.original.status,
-                                duration: selectedLog.duration,
-                                success: selectedLog.success
-                              }, null, 2)}
-                              options={{
-                                readOnly: true,
-                                minimap: { enabled: false },
-                                fontSize: 12,
-                                wordWrap: 'off',
-                                scrollBeyondLastLine: false,
-                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
-                                lineHeight: 1.5,
-                                padding: { top: 16, bottom: 16 }
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Request Headers */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                          <h4 style={{ 
-                            fontSize: '0.875rem', 
-                            fontWeight: '600', 
-                            color: '#374151',
-                            marginBottom: '0.5rem'
-                          }}>
-                            📤 Request Headers
-                          </h4>
-                          <div style={{
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: '#f8fafc'
-                          }}>
-                            <Editor
-                              height="150px"
-                              language="json"
-                              value={formatHeaders(selectedLog.original.headers || {})}
-                              options={{
-                                readOnly: true,
-                                minimap: { enabled: false },
-                                fontSize: 12,
-                                wordWrap: 'off',
-                                scrollBeyondLastLine: false,
-                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
-                                lineHeight: 1.5,
-                                padding: { top: 16, bottom: 16 }
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Request Body */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                          <h4 style={{ 
-                            fontSize: '0.875rem', 
-                            fontWeight: '600', 
-                            color: '#374151',
-                            marginBottom: '0.5rem'
-                          }}>
-                            📝 Request Body
-                          </h4>
-                          <div style={{
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: '#f8fafc'
-                          }}>
-                            <Editor
-                              height="180px"
-                              language="json"
-                              value={(() => {
-                                const requestBody = selectedLog.original.requestBody;
-                                
-                                if (!requestBody) {
-                                  // Show helpful message for GET requests
-                                  return selectedLog.original.method === 'GET' 
-                                    ? `// ${selectedLog.original.method} requests typically don't have a request body`
-                                    : 'No request body';
-                                }
-                                
-                                return formatJsonData(requestBody);
-                              })()}
-                              options={{
-                                readOnly: true,
-                                minimap: { enabled: false },
-                                fontSize: 12,
-                                wordWrap: 'off',
-                                scrollBeyondLastLine: false,
-                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
-                                lineHeight: 1.5,
-                                padding: { top: 16, bottom: 16 }
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Response Data */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                          <h4 style={{ 
-                            fontSize: '0.875rem', 
-                            fontWeight: '600', 
-                            color: '#374151',
-                            marginBottom: '0.5rem'
-                          }}>
-                            📨 Response Data
-                          </h4>
-                          <div style={{
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: '#f8fafc'
-                          }}>
-                            <Editor
-                              height="250px"
-                              language="json"
-                              value={formatResponseData(selectedLog.original.responseData || {})}
-                              options={{
-                                readOnly: true,
-                                minimap: { enabled: false },
-                                fontSize: 12,
-                                wordWrap: 'off',
-                                scrollBeyondLastLine: false,
-                                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
-                                lineHeight: 1.5,
-                                padding: { top: 16, bottom: 16 },
-                                folding: true,
-                                foldingHighlight: true
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Error Information (if any) */}
-                        {selectedLog.original.error && (
+                      // Auto-capture format with two-column layout
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '2rem',
+                        alignItems: 'start'
+                      }}>
+                        {/* Left Column - Technical Details */}
+                        <div>
+                          {/* Request Overview */}
                           <div style={{ marginBottom: '1.5rem' }}>
                             <h4 style={{ 
                               fontSize: '0.875rem', 
                               fontWeight: '600', 
-                              color: '#dc2626',
+                              color: '#374151',
                               marginBottom: '0.5rem'
                             }}>
-                              ⚠️ Error Information
+                              🔍 Request Overview
                             </h4>
                             <div style={{
                               borderRadius: '8px',
                               overflow: 'hidden',
-                              border: '1px solid #fecaca',
-                              backgroundColor: '#fef2f2'
+                              border: '1px solid #e5e7eb',
+                              backgroundColor: '#f8fafc'
                             }}>
                               <Editor
-                                height="100px"
+                                height="120px"
                                 language="json"
-                                value={formatJsonData({
-                                  error: selectedLog.original.error,
-                                  status: selectedLog.original.status
-                                })}
+                                value={JSON.stringify({
+                                  id: selectedLog.id,
+                                  timestamp: selectedLog.timestamp,
+                                  method: selectedLog.original.method,
+                                  url: selectedLog.original.url,
+                                  status: selectedLog.original.status,
+                                  duration: selectedLog.duration,
+                                  success: selectedLog.success
+                                }, null, 2)}
                                 options={{
                                   readOnly: true,
                                   minimap: { enabled: false },
@@ -2614,8 +2506,165 @@ const Logs: React.FC = () => {
                               />
                             </div>
                           </div>
-                        )}
-                      </>
+
+                          {/* Request Headers */}
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <h4 style={{ 
+                              fontSize: '0.875rem', 
+                              fontWeight: '600', 
+                              color: '#374151',
+                              marginBottom: '0.5rem'
+                            }}>
+                              📤 Request Headers
+                            </h4>
+                            <div style={{
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid #e5e7eb',
+                              backgroundColor: '#f8fafc'
+                            }}>
+                              <Editor
+                                height="150px"
+                                language="json"
+                                value={formatHeaders(selectedLog.original.headers || {})}
+                                options={{
+                                  readOnly: true,
+                                  minimap: { enabled: false },
+                                  fontSize: 12,
+                                  wordWrap: 'off',
+                                  scrollBeyondLastLine: false,
+                                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
+                                  lineHeight: 1.5,
+                                  padding: { top: 16, bottom: 16 }
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Request Body */}
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <h4 style={{ 
+                              fontSize: '0.875rem', 
+                              fontWeight: '600', 
+                              color: '#374151',
+                              marginBottom: '0.5rem'
+                            }}>
+                              📝 Request Body
+                            </h4>
+                            <div style={{
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid #e5e7eb',
+                              backgroundColor: '#f8fafc'
+                            }}>
+                              <Editor
+                                height="180px"
+                                language="json"
+                                value={(() => {
+                                  const requestBody = selectedLog.original.requestBody;
+                                  
+                                  if (!requestBody) {
+                                    // Show helpful message for GET requests
+                                    return selectedLog.original.method === 'GET' 
+                                      ? `// ${selectedLog.original.method} requests typically don't have a request body`
+                                      : 'No request body';
+                                  }
+                                  
+                                  return formatJsonData(requestBody);
+                                })()}
+                                options={{
+                                  readOnly: true,
+                                  minimap: { enabled: false },
+                                  fontSize: 12,
+                                  wordWrap: 'off',
+                                  scrollBeyondLastLine: false,
+                                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
+                                  lineHeight: 1.5,
+                                  padding: { top: 16, bottom: 16 }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Column - Response Output */}
+                        <div>
+                          {/* Response Data */}
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <h4 style={{ 
+                              fontSize: '0.875rem', 
+                              fontWeight: '600', 
+                              color: '#374151',
+                              marginBottom: '0.5rem'
+                            }}>
+                              📨 Full Output
+                            </h4>
+                            <div style={{
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid #e5e7eb',
+                              backgroundColor: '#f8fafc'
+                            }}>
+                              <Editor
+                                height="450px"
+                                language="json"
+                                value={formatResponseData(selectedLog.original.responseData || {})}
+                                options={{
+                                  readOnly: true,
+                                  minimap: { enabled: false },
+                                  fontSize: 12,
+                                  wordWrap: 'off',
+                                  scrollBeyondLastLine: false,
+                                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
+                                  lineHeight: 1.5,
+                                  padding: { top: 16, bottom: 16 },
+                                  folding: true,
+                                  foldingHighlight: true
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Error Information (if any) */}
+                          {selectedLog.original.error && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                              <h4 style={{ 
+                                fontSize: '0.875rem', 
+                                fontWeight: '600', 
+                                color: '#dc2626',
+                                marginBottom: '0.5rem'
+                              }}>
+                                ⚠️ Error Information
+                              </h4>
+                              <div style={{
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                border: '1px solid #fecaca',
+                                backgroundColor: '#fef2f2'
+                              }}>
+                                <Editor
+                                  height="100px"
+                                  language="json"
+                                  value={formatJsonData({
+                                    error: selectedLog.original.error,
+                                    status: selectedLog.original.status
+                                  })}
+                                  options={{
+                                    readOnly: true,
+                                    minimap: { enabled: false },
+                                    fontSize: 12,
+                                    wordWrap: 'off',
+                                    scrollBeyondLastLine: false,
+                                    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
+                                    lineHeight: 1.5,
+                                    padding: { top: 16, bottom: 16 }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ) : (
                       // Enhanced logging format with single block
                       <div style={{
