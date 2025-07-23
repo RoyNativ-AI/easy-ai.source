@@ -6,13 +6,9 @@ import json
 import time
 import requests
 import urllib3
-import inspect
-import traceback
-import glob
 from urllib.parse import urlparse
 from requests.adapters import HTTPAdapter
 from requests.models import Response
-from difflib import SequenceMatcher
 
 EASYAI_PORT = os.environ.get('EASYAI_PORT', '7542')
 EASYAI_ENABLED = os.environ.get('EASYAI_ENABLED', 'true').lower() == 'true'
@@ -58,252 +54,6 @@ def get_provider_from_url(netloc):
             return 'ollama'
     return 'unknown'
 
-# ===== PROMPT ANALYSIS FUNCTIONS =====
-
-def extract_prompt_from_request(request_body):
-    """Extract prompt text from API request body"""
-    if not request_body:
-        return None
-    
-    try:
-        # Handle different API formats
-        if isinstance(request_body, dict):
-            # OpenAI/OpenRouter format
-            if 'messages' in request_body and isinstance(request_body['messages'], list):
-                messages = request_body['messages']
-                if messages:
-                    # Get the last user message or concatenate all messages
-                    prompt_parts = []
-                    for msg in messages:
-                        if isinstance(msg, dict) and 'content' in msg:
-                            role = msg.get('role', 'user')
-                            content = msg['content']
-                            if role == 'system':
-                                prompt_parts.append(f"[SYSTEM] {content}")
-                            elif role == 'user':
-                                prompt_parts.append(content)
-                            elif role == 'assistant':
-                                prompt_parts.append(f"[ASSISTANT] {content}")
-                    return '\n'.join(prompt_parts)
-            
-            # Anthropic format
-            elif 'messages' in request_body:
-                messages = request_body['messages']
-                if messages and isinstance(messages, list):
-                    prompt_parts = []
-                    for msg in messages:
-                        if isinstance(msg, dict) and 'content' in msg:
-                            prompt_parts.append(msg['content'])
-                    return '\n'.join(prompt_parts)
-            
-            # Direct prompt field (some APIs)
-            elif 'prompt' in request_body:
-                return request_body['prompt']
-            
-            # Google format
-            elif 'contents' in request_body:
-                contents = request_body['contents']
-                if isinstance(contents, list) and contents:
-                    prompt_parts = []
-                    for content in contents:
-                        if isinstance(content, dict) and 'parts' in content:
-                            for part in content['parts']:
-                                if isinstance(part, dict) and 'text' in part:
-                                    prompt_parts.append(part['text'])
-                    return '\n'.join(prompt_parts)
-    except Exception:
-        pass
-    
-    return None
-
-def find_easyai_directory():
-    """Find the easyai directory in the current project"""
-    current_dir = os.getcwd()
-    
-    # Look for easyai directory in current and parent directories
-    for _ in range(5):  # Search up to 5 levels up
-        easyai_path = os.path.join(current_dir, 'easyai')
-        if os.path.exists(easyai_path) and os.path.isdir(easyai_path):
-            return easyai_path
-        current_dir = os.path.dirname(current_dir)
-        if current_dir == os.path.dirname(current_dir):  # Reached root
-            break
-    
-    return None
-
-def scan_prompt_library():
-    """Scan the EasyAI prompt library and return all prompts"""
-    easyai_dir = find_easyai_directory()
-    if not easyai_dir:
-        return []
-    
-    prompts_dir = os.path.join(easyai_dir, 'prompts')
-    if not os.path.exists(prompts_dir):
-        return []
-    
-    prompts = []
-    
-    # Find all .md files in prompts directory
-    for root, dirs, files in os.walk(prompts_dir):
-        for file in files:
-            if file.endswith('.md'):
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, easyai_dir)
-                
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        
-                    # Extract prompt name from filename
-                    prompt_name = os.path.splitext(file)[0]
-                    
-                    # Get category from directory structure
-                    category = os.path.basename(root) if root != prompts_dir else 'root'
-                    
-                    prompts.append({
-                        'name': prompt_name,
-                        'category': category,
-                        'file': relative_path,
-                        'content': content,
-                        'content_clean': content.lower().strip()
-                    })
-                except Exception:
-                    continue
-    
-    return prompts
-
-def calculate_similarity(text1, text2):
-    """Calculate similarity between two texts"""
-    if not text1 or not text2:
-        return 0.0
-    
-    # Clean texts for comparison
-    clean1 = text1.lower().strip()
-    clean2 = text2.lower().strip()
-    
-    # Use SequenceMatcher for similarity
-    return SequenceMatcher(None, clean1, clean2).ratio()
-
-def find_prompt_library_match(prompt_text, prompts_cache=None):
-    """Find matching prompt in the library"""
-    if not prompt_text:
-        return None
-    
-    # Use cached prompts if available, otherwise scan
-    prompts = prompts_cache if prompts_cache is not None else scan_prompt_library()
-    
-    if not prompts:
-        return None
-    
-    best_match = None
-    best_score = 0.0
-    similarity_threshold = 0.7  # Minimum similarity to consider a match
-    
-    prompt_clean = prompt_text.lower().strip()
-    
-    for prompt in prompts:
-        # Calculate similarity with the prompt content
-        similarity = calculate_similarity(prompt_clean, prompt['content_clean'])
-        
-        if similarity > best_score and similarity >= similarity_threshold:
-            best_score = similarity
-            best_match = {
-                'name': prompt['name'],
-                'category': prompt['category'],
-                'file': prompt['file'],
-                'confidence': similarity
-            }
-    
-    return best_match
-
-def get_code_location():
-    """Get the location in user code where the API call originated"""
-    try:
-        # Get the current stack
-        stack = inspect.stack()
-        
-        # Look for the first frame that's not part of this interceptor or requests library
-        for frame_info in stack:
-            filename = frame_info.filename
-            function_name = frame_info.function
-            line_number = frame_info.lineno
-            
-            # Skip internal frames
-            if (filename.endswith('easyai_interceptor.py') or 
-                'requests' in filename or 
-                'urllib3' in filename or
-                'http' in filename.lower() or
-                'ssl' in filename.lower()):
-                continue
-            
-            # Skip Python standard library
-            if '/lib/python' in filename or '/Library/Frameworks/Python' in filename:
-                continue
-            
-            # This looks like user code
-            return {
-                'file': filename,
-                'function': function_name,
-                'line': line_number
-            }
-    except Exception:
-        pass
-    
-    return None
-
-def analyze_prompt(request_body, prompts_cache=None):
-    """Analyze a prompt to determine its source and characteristics"""
-    # Extract prompt text
-    prompt_text = extract_prompt_from_request(request_body)
-    if not prompt_text:
-        return None
-    
-    # Find library match
-    library_match = find_prompt_library_match(prompt_text, prompts_cache)
-    
-    # Get code location
-    code_location = get_code_location()
-    
-    # Determine source type
-    source = 'unknown'
-    if library_match:
-        if library_match['confidence'] >= 0.9:
-            source = 'library'
-        elif library_match['confidence'] >= 0.7:
-            source = 'mixed'  # Partially matches library prompt
-    else:
-        source = 'hardcoded'
-    
-    # Create analysis result
-    analysis = {
-        'source': source,
-        'prompt_preview': prompt_text[:200] + '...' if len(prompt_text) > 200 else prompt_text
-    }
-    
-    if library_match:
-        analysis['library_match'] = library_match
-    
-    if code_location:
-        analysis['code_location'] = code_location
-    
-    return analysis
-
-# Cache for prompt library to avoid rescanning on every request
-_prompt_library_cache = None
-_cache_timestamp = 0
-
-def get_cached_prompt_library():
-    """Get cached prompt library, refresh if needed"""
-    global _prompt_library_cache, _cache_timestamp
-    
-    current_time = time.time()
-    # Refresh cache every 60 seconds
-    if _prompt_library_cache is None or (current_time - _cache_timestamp) > 60:
-        _prompt_library_cache = scan_prompt_library()
-        _cache_timestamp = current_time
-    
-    return _prompt_library_cache
-
 def log_to_easyai(method, url, body, headers, response=None):
     """Send request log to EasyAI server and file"""
     if not should_log_request(url):
@@ -340,16 +90,6 @@ def log_to_easyai(method, url, body, headers, response=None):
             except (json.JSONDecodeError, AttributeError):
                 response_data = response_text if 'response_text' in locals() else None
         
-        # Analyze prompt if this is a request (not a response)
-        prompt_analysis = None
-        if not response:  # This is the request logging
-            try:
-                prompts_cache = get_cached_prompt_library()
-                prompt_analysis = analyze_prompt(request_body, prompts_cache)
-            except Exception as e:
-                # Don't let prompt analysis errors break the logging
-                pass
-        
         # Prepare log data for file
         log_entry = {
             'timestamp': time.time() * 1000,
@@ -360,10 +100,6 @@ def log_to_easyai(method, url, body, headers, response=None):
             'requestBody': request_body,
             'source': 'python-interceptor'
         }
-        
-        # Add prompt analysis if available
-        if prompt_analysis:
-            log_entry['prompt_analysis'] = prompt_analysis
         
         if response:
             log_entry.update({

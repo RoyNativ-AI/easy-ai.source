@@ -5,6 +5,22 @@ export interface AnalyticsData {
   lastUpdated: string;
 }
 
+export interface PromptAnalysis {
+  source: 'hardcoded' | 'library' | 'mixed' | 'unknown';
+  prompt_preview?: string;
+  library_match?: {
+    name: string;
+    category: string;
+    file: string;
+    confidence: number;
+  };
+  code_location?: {
+    file: string;
+    function: string;
+    line: number;
+  };
+}
+
 export interface LogEntry {
   timestamp: string;
   prompt: string;
@@ -17,6 +33,8 @@ export interface LogEntry {
   // New fields for auto-capture integration
   source?: string; // 'playground' | 'auto-capture' | undefined for legacy logs
   category?: string; // 'workspace' | 'playground'  
+  // Prompt analysis data
+  prompt_analysis?: PromptAnalysis;
   // Enhanced properties for Full Details view
   id?: string;
   endpoint?: string;
