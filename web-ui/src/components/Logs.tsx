@@ -1237,8 +1237,30 @@ const Logs: React.FC = () => {
 
                           {/* Prompt Analysis Indicator */}
                           {(() => {
+                            // Debug info
+                            console.log('Log prompt_analysis:', log.prompt_analysis);
+                            console.log('Log source:', log.source);
+                            
                             const sourceInfo = getPromptSourceIcon(log.prompt_analysis);
-                            if (!sourceInfo) return null;
+                            if (!sourceInfo) {
+                              // Show debug indicator if no analysis
+                              return (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  backgroundColor: '#ffffff',
+                                  border: '1px solid #9ca3af',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '500'
+                                }}>
+                                  <span>⚫</span>
+                                  <span style={{ color: '#9ca3af' }}>No Analysis</span>
+                                </div>
+                              );
+                            }
                             
                             return (
                               <div style={{
@@ -2501,7 +2523,7 @@ const Logs: React.FC = () => {
                           'Full detailed logging information including endpoint, headers, and performance metrics.'}
                       </p>
                     </div>
-{(selectedLog.source === 'workspace' || selectedLog.source === 'playground') && selectedLog.original ? (
+{(selectedLog.source === 'workspace' || selectedLog.source === 'playground' || selectedLog.source === 'python-interceptor') && (selectedLog.original || (selectedLog.requestBody && selectedLog.responseData)) ? (
                       // Auto-capture format with two-column layout
                       <div style={{
                         display: 'grid',
@@ -2533,9 +2555,9 @@ const Logs: React.FC = () => {
                                 value={JSON.stringify({
                                   id: selectedLog.id,
                                   timestamp: selectedLog.timestamp,
-                                  method: selectedLog.original.method,
-                                  url: selectedLog.original.url,
-                                  status: selectedLog.original.status,
+                                  method: selectedLog.original?.method || selectedLog.method,
+                                  url: selectedLog.original?.url || selectedLog.url,
+                                  status: selectedLog.original?.status || selectedLog.status,
                                   duration: selectedLog.duration,
                                   success: selectedLog.success
                                 }, null, 2)}
@@ -2572,7 +2594,7 @@ const Logs: React.FC = () => {
                               <Editor
                                 height="150px"
                                 language="json"
-                                value={formatHeaders(selectedLog.original.headers || {})}
+                                value={formatHeaders(selectedLog.original?.headers || selectedLog.headers || {})}
                                 options={{
                                   readOnly: true,
                                   minimap: { enabled: false },
@@ -2607,12 +2629,13 @@ const Logs: React.FC = () => {
                                 height="180px"
                                 language="json"
                                 value={(() => {
-                                  const requestBody = selectedLog.original.requestBody;
+                                  const requestBody = selectedLog.original?.requestBody || selectedLog.requestBody;
+                                  const method = selectedLog.original?.method || selectedLog.method;
                                   
                                   if (!requestBody) {
                                     // Show helpful message for GET requests
-                                    return selectedLog.original.method === 'GET' 
-                                      ? `// ${selectedLog.original.method} requests typically don't have a request body`
+                                    return method === 'GET' 
+                                      ? `// ${method} requests typically don't have a request body`
                                       : 'No request body';
                                   }
                                   
@@ -2654,7 +2677,7 @@ const Logs: React.FC = () => {
                               <Editor
                                 height="450px"
                                 language="json"
-                                value={formatResponseData(selectedLog.original.responseData || {})}
+                                value={formatResponseData(selectedLog.original?.responseData || selectedLog.responseData || {})}
                                 options={{
                                   readOnly: true,
                                   minimap: { enabled: false },
@@ -2672,7 +2695,7 @@ const Logs: React.FC = () => {
                           </div>
 
                           {/* Error Information (if any) */}
-                          {selectedLog.original.error && (
+                          {(selectedLog.original?.error || selectedLog.error) && (
                             <div style={{ marginBottom: '1.5rem' }}>
                               <h4 style={{ 
                                 fontSize: '0.875rem', 
@@ -2692,8 +2715,8 @@ const Logs: React.FC = () => {
                                   height="100px"
                                   language="json"
                                   value={formatJsonData({
-                                    error: selectedLog.original.error,
-                                    status: selectedLog.original.status
+                                    error: selectedLog.original?.error || selectedLog.error,
+                                    status: selectedLog.original?.status || selectedLog.status
                                   })}
                                   options={{
                                     readOnly: true,
