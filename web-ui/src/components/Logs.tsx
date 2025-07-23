@@ -1518,6 +1518,16 @@ const Logs: React.FC = () => {
                       }}>
                         Full Output
                       </th>
+                      <th style={{
+                        textAlign: 'center',
+                        padding: '12px',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#374151',
+                        width: '120px'
+                      }}>
+                        Actions
+                      </th>
                     </tr>
                     {/* Column Filters Row */}
                     {showFilters && (
@@ -1839,6 +1849,9 @@ const Logs: React.FC = () => {
                             }}
                           />
                         </td>
+                        <td style={{ padding: '12px' }}>
+                          {/* No filter for Actions column */}
+                        </td>
                       </tr>
                     )}
                   </thead>
@@ -1989,24 +2002,31 @@ const Logs: React.FC = () => {
                           }}>
                             {log.response || 'No response'}
                           </div>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center', verticalAlign: 'middle' }}>
                           <button
                             onClick={() => handleViewLog(log)}
                             style={{
-                              marginTop: '8px',
-                              padding: '4px 8px',
-                              backgroundColor: '#f3f4f6',
-                              color: '#374151',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              backgroundColor: '#5b61eb',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '6px',
                               fontSize: '0.75rem',
+                              fontWeight: '500',
                               cursor: 'pointer',
-                              transition: 'all 0.2s ease'
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#e5e7eb'
+                              e.currentTarget.style.backgroundColor = '#4f46e5'
+                              e.currentTarget.style.transform = 'translateY(-1px)'
+                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.12)'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#f3f4f6'
+                              e.currentTarget.style.backgroundColor = '#5b61eb'
+                              e.currentTarget.style.transform = 'translateY(0)'
+                              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                           >
                             View Details
