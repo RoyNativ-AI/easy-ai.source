@@ -366,10 +366,17 @@ def log_to_easyai(method, url, body, headers, response=None):
             log_entry['prompt_analysis'] = prompt_analysis
         
         if response:
+            # Get duration from our custom tracking or fallback to requests.elapsed
+            duration = 0
+            if hasattr(response, '_easyai_duration'):
+                duration = response._easyai_duration
+            elif hasattr(response, 'elapsed') and response.elapsed:
+                duration = response.elapsed.total_seconds()
+            
             log_entry.update({
                 'status': response.status_code,
                 'responseData': response_data,
-                'duration': getattr(response, 'elapsed', None).total_seconds() if hasattr(response, 'elapsed') and response.elapsed else 0,
+                'duration': duration,
                 'type': 'response'
             })
         else:
@@ -425,6 +432,11 @@ class LoggingHTTPAdapter(HTTPAdapter):
     """Custom adapter that logs all requests"""
     
     def send(self, request, **kwargs):
+        import time
+        
+        # Record start time
+        start_time = time.time()
+        
         # Log request
         log_to_easyai(
             method=request.method,
@@ -436,7 +448,14 @@ class LoggingHTTPAdapter(HTTPAdapter):
         # Send actual request
         response = super().send(request, **kwargs)
         
-        # Log response
+        # Calculate duration
+        end_time = time.time()
+        duration_seconds = end_time - start_time
+        
+        # Add duration to response object for logging
+        response._easyai_duration = duration_seconds
+        
+        # Log response with duration
         log_to_easyai(
             method=request.method,
             url=request.url,
@@ -484,17 +503,37 @@ patch_direct_methods()
 # Auto-patch urllib3 for SDKs that use it directly
 class LoggingHTTPConnectionPool(urllib3.HTTPConnectionPool):
     def urlopen(self, method, url, body=None, headers=None, **kwargs):
+        import time
+        
         full_url = f"{self.scheme}://{self.host}:{self.port}{url}"
+        start_time = time.time()
+        
         log_to_easyai(method, full_url, body, headers)
         response = super().urlopen(method, url, body, headers, **kwargs)
+        
+        # Calculate and add duration
+        end_time = time.time()
+        duration_seconds = end_time - start_time
+        response._easyai_duration = duration_seconds
+        
         log_to_easyai(method, full_url, body, headers, response)
         return response
 
 class LoggingHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
     def urlopen(self, method, url, body=None, headers=None, **kwargs):
+        import time
+        
         full_url = f"{self.scheme}://{self.host}:{self.port}{url}"
+        start_time = time.time()
+        
         log_to_easyai(method, full_url, body, headers)
         response = super().urlopen(method, url, body, headers, **kwargs)
+        
+        # Calculate and add duration
+        end_time = time.time()
+        duration_seconds = end_time - start_time
+        response._easyai_duration = duration_seconds
+        
         log_to_easyai(method, full_url, body, headers, response)
         return response
 
