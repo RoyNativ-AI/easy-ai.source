@@ -1108,16 +1108,19 @@ if (fs.existsSync(buildPath)) {
 }
 
 export function startServer() {
-  const server = app.listen(port, () => {
-    console.log(`🎯 EasyAI Dashboard: http://localhost:${port}`)
+  // Read port at runtime (after ui.ts sets process.env.EASYAI_PORT)
+  const serverPort = process.env.EASYAI_PORT || 7542
+
+  const server = app.listen(serverPort, () => {
+    console.log(`🎯 EasyAI Dashboard: http://localhost:${serverPort}`)
     console.log('✅ TypeScript + React server ready')
   })
-  
+
   server.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${port} is already in use`)
+      console.error(`❌ Port ${serverPort} is already in use`)
       console.log('💡 Try using a different port:')
-      console.log(`   easyai ui --port ${parseInt(port.toString()) + 1}`)
+      console.log(`   easyai ui --port ${parseInt(serverPort.toString()) + 1}`)
       process.exit(1)
     } else {
       console.error('❌ Server error:', err)

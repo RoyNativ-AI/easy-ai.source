@@ -60,4 +60,4 @@ if not hasattr(sys, '_easyai_initialized'):
 __all__ = []
 
 # Version info
-__version__ = "3.0.2"
+__version__ = "3.0.23"

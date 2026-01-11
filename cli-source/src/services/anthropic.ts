@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { calculateCost } from '../utils/pricing';
 
 interface APIResponse {
   content: string;
@@ -6,16 +7,9 @@ interface APIResponse {
   cost: number;
 }
 
-const PRICING = {
-  'claude-3-sonnet': { input: 0.003, output: 0.015 },
-  'claude-3-opus': { input: 0.015, output: 0.075 },
-  'claude-3-haiku': { input: 0.00025, output: 0.00125 },
-  'claude-3-5-sonnet': { input: 0.003, output: 0.015 }
-};
-
 export async function callAnthropic(
-  apiKey: string, 
-  model: string, 
+  apiKey: string,
+  model: string,
   prompt: string
 ): Promise<APIResponse> {
   if (!apiKey || apiKey === 'your_anthropic_key_here') {
@@ -38,14 +32,13 @@ export async function callAnthropic(
 
     const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
     const usage = response.usage;
-    
+
     const inputTokens = usage.input_tokens || 0;
     const outputTokens = usage.output_tokens || 0;
     const totalTokens = inputTokens + outputTokens;
 
-    // Calculate cost
-    const pricing = PRICING[model as keyof typeof PRICING] || PRICING['claude-3-sonnet'];
-    const cost = (inputTokens * pricing.input + outputTokens * pricing.output) / 1000;
+    // Calculate cost using central pricing
+    const cost = calculateCost(model, totalTokens, inputTokens, outputTokens);
 
     return {
       content,

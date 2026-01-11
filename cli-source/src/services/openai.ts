@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { calculateCost } from '../utils/pricing';
 
 interface APIResponse {
   content: string;
@@ -6,17 +7,9 @@ interface APIResponse {
   cost: number;
 }
 
-const PRICING = {
-  'gpt-4': { input: 0.03, output: 0.06 },
-  'gpt-4-turbo': { input: 0.01, output: 0.03 },
-  'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
-  'o1-preview': { input: 0.015, output: 0.06 },
-  'o1-mini': { input: 0.003, output: 0.012 }
-};
-
 export async function callOpenAI(
-  apiKey: string, 
-  model: string, 
+  apiKey: string,
+  model: string,
   prompt: string
 ): Promise<APIResponse> {
   if (!apiKey || apiKey === 'your_openai_key_here') {
@@ -39,14 +32,13 @@ export async function callOpenAI(
 
     const response = completion.choices[0]?.message?.content || '';
     const usage = completion.usage;
-    
+
     const inputTokens = usage?.prompt_tokens || 0;
     const outputTokens = usage?.completion_tokens || 0;
     const totalTokens = usage?.total_tokens || 0;
 
-    // Calculate cost
-    const pricing = PRICING[model as keyof typeof PRICING] || PRICING['gpt-4'];
-    const cost = (inputTokens * pricing.input + outputTokens * pricing.output) / 1000;
+    // Calculate cost using central pricing
+    const cost = calculateCost(model, totalTokens, inputTokens, outputTokens);
 
     return {
       content: response,

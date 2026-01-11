@@ -567,7 +567,7 @@ export default function Home() {
             </div>
             
             <div className="text-sm text-gray-500">
-              © 2024 EasyAI. Built for developers.
+              © 2026 EasyAI. Built for developers.
             </div>
           </div>
         </div>

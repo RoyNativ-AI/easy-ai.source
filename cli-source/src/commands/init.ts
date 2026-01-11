@@ -332,7 +332,7 @@ if not hasattr(sys, '_easyai_initialized'):
         print("[EasyAI] Make sure @easyai/cli is installed globally: npm install -g @easyai/cli")
 
 # Version info
-__version__ = "3.0.4"
+__version__ = "3.0.23"
 `;
 
     await fs.writeFile(localEasyAiPath, easyaiContent);
@@ -387,7 +387,7 @@ async function setupNodeModule(easyaiDir: string): Promise<void> {
       // Create package.json for the local module
       const modulePackageJson = {
         name: 'easyai',
-        version: '3.0.4',
+        version: '3.0.23',
         description: 'EasyAI auto-capture module',
         main: 'index.js'
       };
