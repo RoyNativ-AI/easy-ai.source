@@ -1,112 +1,117 @@
-<p align="center">
-  <img src="https://img.shields.io/npm/v/@easyai/cli?color=blue&label=npm" alt="npm version" />
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" />
-</p>
-
 <h1 align="center">EasyAI</h1>
 
+<h4 align="center">AI observability in 60 seconds, not 60 minutes.</h4>
+
 <p align="center">
-  <strong>AI observability in 60 seconds, not 60 minutes.</strong>
+  <a href="https://www.npmjs.com/package/@easyai/cli">
+    <img src="https://img.shields.io/npm/v/@easyai/cli?color=blue&label=npm" alt="npm version">
+  </a>
+  <a href="https://nodejs.org/">
+    <img src="https://img.shields.io/badge/node-18+-green.svg" alt="Node 18+">
+  </a>
+  <a href="https://github.com/RoyNativ-AI/easy-ai.source/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/RoyNativ-AI/easy-ai.source" alt="License">
+  </a>
+  <a href="https://github.com/RoyNativ-AI/easy-ai.source/stargazers">
+    <img src="https://img.shields.io/github/stars/RoyNativ-AI/easy-ai.source?style=social" alt="Stars">
+  </a>
 </p>
 
 <p align="center">
-  Simple, zero-config logging for your AI API calls.<br/>
-  Track costs. Monitor usage. Debug issues. No infrastructure required.
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-why-easyai">Why EasyAI</a> •
+  <a href="#-configuration">Configuration</a> •
+  <a href="#-providers">Providers</a> •
+  <a href="#-contributing">Contributing</a>
 </p>
 
 ---
 
-## The Problem
-
-You're building with AI APIs. You need to know:
-- How much am I spending?
-- Which prompts are slow?
-- Why did that request fail?
-
-**Enterprise solutions** require Docker, Postgres, Redis, and an hour of setup.
-
-**EasyAI** requires one command.
-
 ## Quick Start
 
 ```bash
+# Install
 npm install -g @easyai/cli
-easyai init
+
+# Initialize in your project
+cd your-project && easyai init
+
+# Open dashboard
 easyai ui
 ```
 
-That's it. Open `http://localhost:7542` and see your dashboard.
+**That's it.** Dashboard at `http://localhost:7542`
 
-## Auto-Capture (One Line of Code)
-
-Add one import and all your AI calls are automatically logged:
-
-<table>
-<tr>
-<td>
-
-**Python**
-```python
-import easyai  # Just add this
-
-from openai import OpenAI
-client = OpenAI()
-# All calls automatically logged
-```
-
-</td>
-<td>
-
-**Node.js**
-```javascript
-require('easyai');  // Just add this
-
-const OpenAI = require('openai');
-const client = new OpenAI();
-// All calls automatically logged
-```
-
-</td>
-</tr>
-</table>
-
-## Dashboard
-
-<p align="center">
-  <img src="https://via.placeholder.com/800x400?text=EasyAI+Dashboard" alt="EasyAI Dashboard" />
-</p>
-
-- **Analytics** - Cost breakdown, token usage, request counts
-- **Logs** - Every request and response, searchable
-- **Playground** - Test prompts across multiple models
-- **Prompts** - Save and organize your prompt templates
+---
 
 ## Why EasyAI?
 
-| | EasyAI | Enterprise Solutions |
-|---|--------|---------------------|
-| **Setup** | `npm install && easyai init` | Docker + Postgres + Redis + Config |
-| **Time** | 60 seconds | 60+ minutes |
-| **Integration** | One import line | SDK wrappers, decorators |
-| **Infrastructure** | None (local files) | Database, cache, queue |
-| **Cost** | Free | Free tier limits, then $$ |
+| Problem | How We Solve It |
+|---------|-----------------|
+| **Complex setup** | One command: `easyai init` - no Docker, no database |
+| **SDK boilerplate** | One import line: `import easyai` - zero code changes |
+| **Hidden costs** | Real-time cost tracking for 300+ models |
+| **Debugging blind** | Full request/response logs, searchable |
+| **Vendor lock-in** | Switch between OpenAI, Claude, Gemini instantly |
+| **Data privacy** | Everything local - no cloud, no accounts |
 
-## Supported Providers
+---
 
-| Provider | Models |
-|----------|--------|
-| **OpenAI** | GPT-4o, GPT-4, GPT-3.5, o1, o1-mini |
-| **Anthropic** | Claude 3.5 Sonnet, Claude 3 Opus, Haiku |
-| **Google** | Gemini Pro, Gemini Flash |
-| **OpenRouter** | 300+ models |
-| **Ollama** | Any local model |
+## Features
+
+```
+Zero Config         npm install + easyai init, done
+Auto-Capture        One import line logs all AI calls
+Cost Tracking       Per-token pricing for 300+ models
+Local Dashboard     Analytics, logs, playground at localhost
+Multi-Provider      OpenAI, Anthropic, Google, OpenRouter, Ollama
+Prompt Library      Save, organize, version your prompts
+Privacy First       All data stays on your machine
+```
+
+---
+
+## Auto-Capture
+
+Add one line to your code. All AI calls automatically logged.
+
+### Python
+
+```python
+import easyai  # Add this line
+
+from openai import OpenAI
+client = OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+# Automatically logged with cost, tokens, timing
+```
+
+### Node.js
+
+```javascript
+require('easyai');  // Add this line
+
+const OpenAI = require('openai');
+const client = new OpenAI();
+const response = await client.chat.completions.create({
+    model: "gpt-4",
+    messages: [{ role: "user", content: "Hello" }]
+});
+// Automatically logged with cost, tokens, timing
+```
+
+---
 
 ## CLI Commands
 
 ```bash
 easyai init              # Initialize in your project
-easyai ui                # Open the dashboard
+easyai ui                # Open dashboard (port 7542)
+easyai ui --port 8080    # Custom port
 easyai logs              # View recent API calls
 easyai models            # List available models
 easyai playground        # Test prompts interactively
@@ -114,34 +119,22 @@ easyai analytics         # View usage statistics
 easyai config --list     # View configuration
 ```
 
-## Features
-
-### Cost Tracking
-See exactly how much each request costs with accurate per-token pricing for 300+ models.
-
-### Request Logging
-Full request and response bodies, headers, timing, and error details - all stored locally.
-
-### Multi-Model Testing
-Test the same prompt across GPT-4, Claude, and Gemini simultaneously in the playground.
-
-### Prompt Management
-Save, organize, and version your prompts with markdown templates and variables.
-
-### Zero Cloud
-Everything runs on your machine. No data leaves your computer. No accounts required.
+---
 
 ## Configuration
 
-API keys are stored in `easyai/config/easyai.env`:
+API keys stored in `easyai/config/easyai.env`:
 
 ```env
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GOOGLE_API_KEY=AIza...
+OPENROUTER_API_KEY=sk-or-...
+OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-## Project Structure
+<details>
+<summary><strong>View project structure</strong></summary>
 
 ```
 your-project/
@@ -155,46 +148,126 @@ your-project/
       examples/          # Prompt templates
 ```
 
-## Philosophy
+</details>
 
-1. **Simple > Feature-rich** - Do one thing well
-2. **Local > Cloud** - Your data stays yours
-3. **Zero config > Flexible config** - Works out of the box
-4. **One command > Documentation** - If it needs docs, it's too complex
+---
+
+## Providers
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| **OpenAI** | GPT-4o, GPT-4, GPT-3.5, o1, o1-mini | Supported |
+| **Anthropic** | Claude 3.5 Sonnet, Claude 3 Opus, Haiku | Supported |
+| **Google** | Gemini Pro, Gemini Flash | Supported |
+| **OpenRouter** | 300+ models | Supported |
+| **Ollama** | Any local model | Supported |
+
+---
+
+## Dashboard
+
+The dashboard provides:
+
+| Tab | Description |
+|-----|-------------|
+| **Analytics** | Cost breakdown, token usage, request counts |
+| **Logs** | Full request/response history, searchable |
+| **Playground** | Test prompts across multiple models |
+| **Prompts** | Save and organize prompt templates |
+| **Settings** | Configure API keys and preferences |
+
+---
 
 ## Comparison
 
 | Feature | EasyAI | Langfuse | Helicone |
 |---------|--------|----------|----------|
 | Setup time | 1 min | 30+ min | 10 min |
-| Self-hosted | Local files | Docker stack | Cloud only |
+| Infrastructure | None (local) | Docker + DB | Cloud only |
+| Integration | 1 import line | SDK decorators | Proxy setup |
 | Pricing | Free | Free tier | Free tier |
 | Best for | Solo devs, POCs | Teams | Production |
 
 **EasyAI is for hackers. Enterprise solutions are for enterprises.**
 
-## Contributing
+---
 
-PRs welcome! This is open source software.
+## Use Cases
+
+| Use Case | Description |
+|----------|-------------|
+| **Cost Monitoring** | Track spending before the bill surprises you |
+| **Debugging** | See exactly what went to the API and back |
+| **Model Testing** | Compare GPT-4 vs Claude vs Gemini on same prompt |
+| **Prompt Iteration** | Save versions, test changes, track results |
+| **Learning** | Understand how AI APIs actually work |
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Dashboard not opening | Check port: `easyai ui --port 7543` |
+| No logs appearing | Ensure `import easyai` is at top of file |
+| API key not working | Check `easyai/config/easyai.env` format |
+| Port already in use | Kill process: `lsof -ti:7542 \| xargs kill` |
+
+---
+
+## Requirements
+
+- Node.js 18+
+- npm or yarn
 
 ```bash
-git clone https://github.com/RoyNativ-AI/easy-ai.source
-cd easy-ai.source/cli-source
-npm install
-npm run dev
+npm install -g @easyai/cli
 ```
+
+---
+
+## Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
 
 ## License
 
-MIT License - Use it however you want.
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## AI Prompt
+
+Copy this to quickly set up with AI assistants:
+
+```
+I need to monitor my AI API calls. Use EasyAI from github.com/RoyNativ-AI/easy-ai.source
+
+Setup:
+npm install -g @easyai/cli
+cd my-project && easyai init
+Add "import easyai" to top of my Python files (or require('easyai') for Node.js)
+easyai ui to see dashboard
+
+I want to track: [COSTS / LOGS / BOTH]
+My providers: [OPENAI / ANTHROPIC / BOTH]
+```
 
 ---
 
 <p align="center">
-  <strong>Stop configuring. Start building.</strong>
+  <sub>Built by <a href="https://github.com/RoyNativ-AI">Roy Nativ</a> at <a href="https://officely.ai">Officely AI</a></sub>
 </p>
 
 <p align="center">
-  <a href="https://github.com/RoyNativ-AI/easy-ai.source">GitHub</a> |
-  <a href="https://www.npmjs.com/package/@easyai/cli">npm</a>
+  <a href="https://github.com/RoyNativ-AI/easy-ai.source/issues">Report Bug</a> •
+  <a href="https://github.com/RoyNativ-AI/easy-ai.source/issues">Request Feature</a>
 </p>
