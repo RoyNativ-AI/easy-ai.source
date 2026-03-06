@@ -98,4 +98,5 @@ easyai/
 1234/
 
 # Compiled JavaScript from TypeScript
-*.js.map
+*.js.mapfrontend-dist/
+dist/
